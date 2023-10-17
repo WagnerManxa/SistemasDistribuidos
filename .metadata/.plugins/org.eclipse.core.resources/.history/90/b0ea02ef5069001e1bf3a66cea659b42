@@ -1,0 +1,70 @@
+package entrega1;
+
+
+import javax.crypto.SecretKey;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
+
+
+public class JwtUtil {
+    private static final SecretKey SECRET_KEY = "AoT3QFTTEkj16rCby/TPVBWvfSQHL3GeEz3zVwEd6LDrQDT97sgDY8HJyxgnH79jupBWFOQ1+7fRPBLZfpuA2lwwHqTgk+NJcWQnDpHn31CVm63Or5c5gb4H7/eSIdd+7hf3v+0a5qVsnyxkHbcxXquqk9ezxrUe93cFppxH4/kF/kGBBamm3kuUVbdBUY39c4U3NRkzSO+XdGs69ssK5SPzshn01axCJoNXqqj+ytebuMwF8oI9+ZDqj/XsQ1CLnChbsL+HCl68ioTeoYU9PLrO4on+rNHGPI0Cx6HrVse7M3WQBPGzOd1TvRh9eWJrvQrP/hm6kOR7KrWKuyJzrQh7OoDxrweXFH8toXeQRD8";
+
+    public static String generateToken(String subject, boolean isAdm) {
+        return Jwts.builder()
+                .claim("user_id", subject)
+                .claim("admin", isAdm)
+                .setSubject(subject)
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .compact();
+    }
+}
+    /*  public static boolean isAdmin(String token) {
+        Claims claims = decodeToken(token);
+
+        if (claims != null) {
+            // Obtém o valor do claim "admin" como um boolean
+            return claims.get("admin", Boolean.class);
+        }
+
+        return false; // Retorna falso se o token não for válido ou não contiver o claim "admin"
+    }
+
+	private static Claims decodeToken(String token) {
+        try {
+            return Jwts.parser()
+                .verifyWith(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody();
+        } catch (Exception e) {
+            return null; // Retorna null se o token não for válido
+        }
+    }		
+}
+
+  public static Claims decodeToken(String token) {
+        try {
+            return Jwts.parser()
+                .setSigningKey(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody();
+        } catch (Exception e) {
+            return null; // Retorna null se o token não for válido
+        }
+    }
+    
+    private static Jws<Claims> parseToken(String token) {
+        return Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+    }
+
+    public static boolean isAdmin(String token) {
+        Jws<Claims> parsedToken = parseToken(token);
+        return parsedToken.getBody().get("admin", Boolean.class);
+    }
+
+    public static boolean isTokenValid(String token) {
+        Claims claims = decodeToken(token);
+        return claims != null && !claims.getExpiration().before(new Date());
+    }*/
