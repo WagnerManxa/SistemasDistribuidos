@@ -2,7 +2,6 @@ package entrega1;
 
 import javax.swing.*;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.awt.*;
@@ -13,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class TelaPrincipal extends JFrame {
     private ClienteLogin clienteLogin;
@@ -78,22 +78,30 @@ public class TelaPrincipal extends JFrame {
     public void atualizarSocket(Socket novoSocket) {
         this.socket = novoSocket;
     }  
+    public void atualizarToken(String novoToken) {
+        this.token = novoToken;
+    }  
 
     private void abrirCadastroUsuario() {
-        CadastroUsuario cadastroUsuario = new CadastroUsuario(socket, this, token);
+        CadastroUsuario cadastroUsuario = new CadastroUsuario(socket, this,token);
+        cadastroUsuario.atualizarToken(this.token);;
         cadastroUsuario.setVisible(true);
         this.dispose();
     }
+    private void showConnectionLostAlert() {
+        JOptionPane.showMessageDialog(this, "Conexão com o servidor perdida!");
+    }
+
 
     private void listarUsuarios() {
-    	ListarUsuario listarUsuario = new ListarUsuario(socket,null, token);
+    	ListarUsuario listarUsuario = new ListarUsuario(socket,null, this.token);
     	listarUsuario.setVisible(true);
         //JOptionPane.showMessageDialog(this, "Operação de Listar Usuários");
         // Lógica para a operação de listar usuários
     }
 
     private void abrirEditarUsuario() {
-        EditarUsuario editarUsuario = new EditarUsuario(socket, this, token);
+        EditarUsuario editarUsuario = new EditarUsuario(socket, this, this.token);
         editarUsuario.setVisible(true);
     }
 
@@ -114,6 +122,7 @@ public class TelaPrincipal extends JFrame {
         clienteLogin.setVisible(true);
         dispose(); 
     }
+    
     private void enviarLogout(String token) {
         if (token == null || token.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Token inválido. O logout falhou.");
@@ -121,36 +130,50 @@ public class TelaPrincipal extends JFrame {
             return;
         }
 
-        try {
             JSONObject mensagem = new JSONObject();
             mensagem.put("action", "logout");
             JSONObject data = new JSONObject();
-            data.put("token", token);
+            data.put("token", this.token);
             mensagem.put("data", data);
 
             // Enviando a mensagem JSON para o servidor
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            out.println(mensagem.toString());
-            System.out.println("TelaPrincipal->Enviada ao servidor: "+ mensagem);
-
-            // Aguardando a resposta do servidor
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String resposta = in.readLine();
-            System.out.println("TelaPrincipal<-Recebida do servidor: "+ resposta);
-            // Analisando a resposta do servidor
-            JSONObject respostaJSON = new JSONObject(resposta);
-            boolean error = respostaJSON.optBoolean("error");
-            String message = respostaJSON.optString("message");
-
-            if (!error) {
-                JOptionPane.showMessageDialog(this, message);
-                voltarTelaLogin();
-            } else {
-                JOptionPane.showMessageDialog(this, "Erro ao efetuar logout: " + message);
-            }
-        } catch (IOException | JSONException ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Erro ao efetuar logout.");
-        }
-    }
+            PrintWriter out;
+            BufferedReader in;
+			try {
+				out = new PrintWriter(socket.getOutputStream(), true);
+				out.println(mensagem.toString());
+	            System.out.println("TelaPrincipal->Enviada ao servidor: "+ mensagem);
+	            
+	            try {
+					in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+					String resposta = in.readLine();
+		            System.out.println("TelaPrincipal<-Recebida do servidor: "+ resposta);
+		            JSONObject respostaJSON = new JSONObject(resposta);
+		            boolean error = respostaJSON.optBoolean("error");
+		            String message = respostaJSON.optString("message");
+		            if (!error) {
+		                JOptionPane.showMessageDialog(this, message);
+		                voltarTelaLogin();
+		            } else {
+		                JOptionPane.showMessageDialog(this, "Erro ao efetuar logout: " + message);
+		            }
+		            
+		            
+				} catch (IOException e) {
+					System.out.println("TelaPrincipal: Erro ao receber resposta do servidor "+e.getMessage());
+				    showConnectionLostAlert();
+				    voltarTelaLogin();
+				}
+			} catch (SocketException se) {
+			    // Trate a exceção de conexão resetada aqui
+			    System.out.println("TelaPrincipal: A conexão foi redefinida pelo servidor: " + se.getMessage());
+			    showConnectionLostAlert();
+			    voltarTelaLogin();
+			} catch (IOException e) {
+			    // Trate a exceção de IO aqui
+			    System.out.println("TelaPrincipal->Erro ao tentar enviar comandode logout ao servidor: " + e.getMessage());
+			    showConnectionLostAlert();
+			    
+			}
 }
+    }

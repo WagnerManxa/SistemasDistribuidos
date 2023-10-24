@@ -111,6 +111,7 @@ public class ListarUsuario extends JFrame {
     // Método para voltar para a tela anterior
     private void voltarTelaAnterior() {
         setVisible(false);
+        telaPrincipal.atualizarToken(token);
         telaPrincipal.setVisible(true);
     }
 
@@ -124,4 +125,5 @@ public class ListarUsuario extends JFrame {
             }
         });
     }
+    
 }

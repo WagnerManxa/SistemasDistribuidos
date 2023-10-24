@@ -212,7 +212,7 @@ public class EditarUsuario extends JFrame {
         String email = emailFieldEditar.getText();
         String tipo = (String) tipoComboBoxEditar.getSelectedItem();
         String senha = new String(senhaFieldEditar.getPassword());
-        String senhaMD5 = DigestUtils.md5Hex(senha);
+        String senhaMD5 = DigestUtils.md5Hex(senha).toUpperCase();
         if (senha.length() < 6) {
             JOptionPane.showMessageDialog(this, "A senha deve ter no mínimo 6 caracteres.");
             return;

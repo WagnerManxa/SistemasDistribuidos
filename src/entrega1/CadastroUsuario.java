@@ -110,21 +110,21 @@ public class CadastroUsuario extends JFrame {
         }
 
         if (senha.length() < 6) {
-            JOptionPane.showMessageDialog(this, "A senha deve ter no mínimo 6 caracteres.");
+            JOptionPane.showMessageDialog(this, "A senha deve ter no minimo 6 caracteres.");
             return;
         }
 
-        String senhaMD5 = hashMD5(senha)/*.toUpperCase()*/;
+        String senhaMD5 = hashMD5(senha).toUpperCase();
 
         JSONObject mensagem = new JSONObject();
         mensagem.put("action", "cadastro-usuario");
 
         JSONObject data = new JSONObject();
-        data.put("nome", nome);
+        data.put("name", nome);
         data.put("token", token);
         data.put("email", email);
-        data.put("tipo", tipo);
-        data.put("senha", senhaMD5);
+        data.put("type", tipo);
+        data.put("password", senhaMD5);
 
         mensagem.put("data", data);
 
@@ -156,9 +156,16 @@ public class CadastroUsuario extends JFrame {
     }
 
     private void voltarTelaPrincipal() {
+    	telaPrincipal.atualizarToken(token);
         telaPrincipal.setVisible(true);
         dispose();
     }
+    public void atualizarSocket(Socket novoSocket) {
+        this.socket = novoSocket;
+    }  
+    public void atualizarToken(String novoToken) {
+        this.token = novoToken;
+    }  
 
     private String hashMD5(String senha) {
         try {

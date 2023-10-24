@@ -8,18 +8,17 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Formatter;
-import java.util.HashMap;
-import java.util.Map;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class Servidor {
     private JTextArea logTextArea;
@@ -28,21 +27,16 @@ public class Servidor {
     private JSONObject userTokens[];
 
     public Servidor() {
-    	userTokens = new JSONObject[100];
-        cadastros = new JSONObject[100];
-        cadastros[99] = new JSONObject();
-        cadastros[99].put("nome", "admin");
-        cadastros[99].put("email", "admin");
-        cadastros[99].put("tipo", "admin");
-        cadastros[99].put("senha", "e00cf25ad42683b3df678c61f42c6bda");       
-        //E00CF25AD42683B3DF678C61F42C6BDA
+    	cadastros = new JSONObject[50]; //vetor de clientes
+    	
+        cadastros[0] = new JSONObject();
+        cadastros[0].put("name", "admin");
+        cadastros[0].put("email", "admin@admin.com");
+        cadastros[0].put("type", "admin");
+        cadastros[0].put("password", hashearSenha("E00CF25AD42683B3DF678C61F42C6BDA"));  //admin1   
         
-        cadastros[1] = new JSONObject();
-        cadastros[1].put("nome", "user");
-        cadastros[1].put("email", "user");
-        cadastros[1].put("tipo", "user");
-        cadastros[1].put("senha", "e10adc3949ba59abbe56e057f20f883e");
-        //E10ADC3949BA59ABBE56E057F20F883
+    	userTokens = new JSONObject[50]; // vetor de tokens
+       
 
         JFrame frame = new JFrame("Servidor Sistemas Distribuidos");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -53,10 +47,12 @@ public class Servidor {
         portField.setText(String.valueOf(portNumber)); // Define a porta padrão
         JButton saveButton = new JButton("Salvar Porta");
         JButton clearButton = new JButton("Limpar Log"); // Botão para limpar o log
+        JButton tokensButton = new JButton("Mostrar Tokens");
         controlPanel.add(new JLabel("Porta:"));
         controlPanel.add(portField);
         controlPanel.add(saveButton);
         controlPanel.add(clearButton);
+        controlPanel.add(tokensButton);
 
         logTextArea = new JTextArea();
         logTextArea.setEditable(false);
@@ -90,9 +86,15 @@ public class Servidor {
                 logTextArea.setText(""); // Limpa o conteúdo da área de log
             }
         });
+
+        tokensButton.addActionListener(new ActionListener() {
+            public void actionPerformed (ActionEvent e){                
+                listarTokens();
+            }
+        });
     
 }
-    
+   
 
     
     private int encontrarPosicaoVaziaCadastros() {
@@ -112,16 +114,29 @@ public class Servidor {
         }
         return -1; // Retorna -1 se o vetor estiver cheio
     }
-
-    private boolean validarLogin(String usuario, String senha) {
-        for (JSONObject cadastro : cadastros) {
-            if (cadastro != null && usuario.equals(cadastro.optString("email", ""))
-                    && senha.equals(cadastro.optString("senha", ""))) {
-                return true; // Usuário e senha válidos
+     private void listarTokens(){
+        log("Tokens no servidor: ");
+        for (int i = 0; i < userTokens.length; i++) {            
+          if (userTokens[i] != null){
+            log(userTokens[i].toString());
+        }else{
+            log("Fim!");
+            return;
             }
         }
-        return false; // Usuário e senha não encontrados
     }
+     
+    
+
+     private boolean validarLogin(String usuario, String senha) {
+    	    for (JSONObject cadastro : cadastros) {
+    	        if (cadastro != null && usuario.equals(cadastro.optString("email", ""))
+    	                && BCrypt.checkpw(senha, cadastro.optString("password", ""))) {
+    	            return true; // Usuário e senha válidos
+    	        }
+    	    }
+    	    return false; // Usuário e senha não encontrados
+    	}
     
     private int buscarId(String usuario) {
     	int id = 0;
@@ -137,7 +152,7 @@ public class Servidor {
     public boolean isAdmin(String usuario) {
     	 for (JSONObject cadastro : cadastros) {
              if (cadastro != null && usuario.equals(cadastro.optString("email", ""))
-                     && ("admin").equals(cadastro.optString("tipo", ""))) {
+                     && ("admin").equals(cadastro.optString("type", ""))) {
                  return true; // Usuário e senha válidos
              }
          }
@@ -150,6 +165,11 @@ public class Servidor {
 	     novo.put("usuarioId", JwtUtil.getUserIdFromToken(token));
 	     novo.put("token", token);
 	     userTokens[posicao] = novo;    	
+    }
+    
+    private String hashearSenha(String senha) {
+    	return BCrypt.hashpw(senha, BCrypt.gensalt());
+
     }
     
     private boolean isValidToken(String token) {
@@ -172,6 +192,24 @@ public class Servidor {
         }
     	
     }
+    
+    private boolean isValidEmail(String email) {
+        String regex = "^(.+)@(.+)$";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(email);
+        return matcher.matches();
+    }
+    
+    private boolean isEmailAlreadyRegistered(String email) {
+        for (JSONObject cadastro : cadastros) {
+            if (cadastro != null && email.equals(cadastro.optString("email", ""))) {
+                return true; // E-mail já registrado
+            }
+        }
+        return false; // E-mail não encontrado
+    }
+    
+    
     public void imprimeTokens() {
     	for (int i = 0; i < userTokens.length; i++) {
             if (userTokens[i] != null ) {
@@ -190,7 +228,8 @@ public class Servidor {
 
         public void run() {
             try (ServerSocket serverSocket = new ServerSocket(portNumber)) {
-                log("Servidor aguardando conexões na porta " + portNumber + "...");
+            	InetAddress serverAddress = InetAddress.getLocalHost();
+                log("Servidor aguardando conexões no Ip/Porta: " + serverAddress.getHostAddress() + "/" + portNumber + " ...");
                 while (true) {
                     Socket clientSocket = serverSocket.accept();
                     log("Servidor: Cliente conectado: " + clientSocket.getInetAddress()+ ":"+ clientSocket.getLocalPort()+"/");
@@ -230,14 +269,24 @@ public class Servidor {
                     switch (action) {
                         case "login":
                             if (dataIn != null) {
-                                String usuario = dataIn.optString("email", "");
-                                String senha = dataIn.optString("senha", "");
+                                String email = dataIn.optString("email", "");
+                                String senha = dataIn.optString("password", "");
                                 
-                                if (validarLogin(usuario, senha)) {                                	
-                                	//int idUsuarioEncontrado = buscarId(usuario);                                	
-                                	String token = JwtUtil.generateToken(String.valueOf(buscarId(usuario)), isAdmin(usuario));  
+                                if (!isValidEmail(email)) {
+                                    // Se o e-mail não for válido, responda ao cliente com um erro
+                                    JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "cadastro");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "E-mail inválido.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }                                
+                                if (validarLogin(email, senha)) {
+                                	
+                                	String token = JwtUtil.generateToken(String.valueOf(buscarId(email)), isAdmin(email));  
                                 	addUserToken(token);
-                                	//criando a resposta para o cliente
+                                	
                                 	JSONObject resposta = new JSONObject();
                                 	resposta.put("action","login");
                                 	resposta.put("error","false");
@@ -250,7 +299,6 @@ public class Servidor {
 
                                     break;
                                 } else {
-                                    log("Tentativa de login falhou no: "+clientSocket.getInetAddress());
                                     JSONObject resposta = new JSONObject();
                                 	resposta.put("action","login");
                                 	resposta.put("error","true");
@@ -259,6 +307,7 @@ public class Servidor {
                                 	data.put("token","");
                                 	resposta.put("data", data);
                                     out.println(resposta);
+                                    log("Servidor->Enviada para o cliente "+ clientSocket.getInetAddress()+": " + resposta);
                                     break;
                                    
                                 }
@@ -268,12 +317,9 @@ public class Servidor {
                         case "logout":
                             if (dataIn != null) {
                                 String token = dataIn.optString("token", "");
-                                if (isValidToken(token)) {     
-
+                                if (isValidToken(token)) {    
                                     // Removendo o token do usuário (logout)
                                     deleteUserToken(token);
-
-
                                     // Respondendo ao cliente com sucesso
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "logout");
@@ -281,12 +327,11 @@ public class Servidor {
                                     resposta.put("message", "Logout efetuado com sucesso.");
                                     log("Servidor->Enviada para o cliente "+ clientSocket.getInetAddress()+": " + resposta);
                                     out.println(resposta.toString());
-                                } else {
-                                     
+                                } else {                                     
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "logout");
                                     resposta.put("error", true);
-                                    resposta.put("message", "Token inválido. O logout falhou.");
+                                    resposta.put("message", "Token invalido. O logout falhou.");
                                     out.println(resposta.toString());
                                     log("Logout falhou no: "+ clientSocket.getInetAddress());
                                 }
@@ -298,11 +343,11 @@ public class Servidor {
                             
                         case "cadastro-usuario":
                             if (dataIn != null) {
-                                String nome = dataIn.optString("nome", "");
+                                String nome = dataIn.optString("name", "");
                                 String token = dataIn.optString("token", "");
                                 String email = dataIn.optString("email", "");
-                                String tipo = dataIn.optString("tipo", "");
-                                String senha = dataIn.optString("senha", "");
+                                String tipo = dataIn.optString("type", "");
+                                String senha = dataIn.optString("password", "");
 
                                 // Validação de entrada
                                 if (nome.isEmpty() || email.isEmpty() || tipo.isEmpty() || senha.isEmpty()) {
@@ -313,6 +358,28 @@ public class Servidor {
                                     out.println(resposta.toString());
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
 
+                                    break;
+                                }
+                                
+                                if (!isValidEmail(email)) {
+                                    // Se o e-mail não for válido, responda ao cliente com um erro
+                                    JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "cadastro");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "E-mail inválido.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+                                
+                                if (isEmailAlreadyRegistered(email)) {
+                                    // Se o e-mail já estiver cadastrado, responda ao cliente com um erro
+                                    JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "cadastro");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "E-mail ja cadastrado.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
                                     break;
                                 }
 
@@ -332,10 +399,10 @@ public class Servidor {
                                     if (usuarioId >= 0 && usuarioId < cadastros.length) {
                                         // Cria um novo cadastro de usuário
                                         JSONObject novoCadastro = new JSONObject();
-                                        novoCadastro.put("nome", nome);
+                                        novoCadastro.put("name", nome);
                                         novoCadastro.put("email", email);
-                                        novoCadastro.put("tipo", tipo);
-                                        novoCadastro.put("senha", senha);
+                                        novoCadastro.put("type", tipo);
+                                        novoCadastro.put("password", hashearSenha(senha));
                                         cadastros[usuarioId] = novoCadastro;
 
                                         // Responde com sucesso ao cliente
@@ -357,6 +424,79 @@ public class Servidor {
 
                                     }
                                 }
+                            }
+                            break;
+                            
+                        case "autocadastro-usuario":
+                            if (dataIn != null) {
+                                String nome = dataIn.optString("name", "");
+                                String email = dataIn.optString("email", "");
+                                String tipo = "user";
+                                String senha = dataIn.optString("password", "");
+
+                                // Validação de entrada
+                                if (nome.isEmpty() || email.isEmpty() || senha.isEmpty()) {
+                                    JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "cadastro");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Falha ao cadastrar. Dados de entrada incompletos.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+
+                                    break;
+                                }
+                                if (!isValidEmail(email)) {
+                                    // Se o e-mail não for válido, responda ao cliente com um erro
+                                    JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "cadastro");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "E-mail invalido.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+                                
+                                if (isEmailAlreadyRegistered(email)) {
+                                    // Se o e-mail já estiver cadastrado, responda ao cliente com um erro
+                                    JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "cadastro");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "E-mail ja cadastrado.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+
+                                    int usuarioId = encontrarPosicaoVaziaCadastros();
+
+                                    if (usuarioId >= 0 && usuarioId < cadastros.length) {
+                                        // Cria um novo cadastro de usuário
+                                        JSONObject novoCadastro = new JSONObject();
+                                        novoCadastro.put("name", nome);
+                                        novoCadastro.put("email", email);
+                                        novoCadastro.put("type", tipo);
+                                        novoCadastro.put("password", hashearSenha(senha));
+                                        cadastros[usuarioId] = novoCadastro;
+
+                                        // Responde com sucesso ao cliente
+                                        JSONObject resposta = new JSONObject();
+                                        resposta.put("action", "cadastro");
+                                        resposta.put("error", false);
+                                        resposta.put("message", "Cadastro efetuado com sucesso!");
+                                        log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+                                        out.println(resposta.toString());
+
+                                    } else {
+                                        // Responde ao cliente com erro se o vetor não tem posição válida
+                                        JSONObject resposta = new JSONObject();
+                                        resposta.put("action", "cadastro");
+                                        resposta.put("error", true);
+                                        resposta.put("message", "Falha ao cadastrar. Sem espaço para armazenar.");
+                                        out.println(resposta.toString());
+                                        log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+
+                                    }
+                                
                             }
                             break;
 
@@ -402,8 +542,8 @@ public class Servidor {
                                     if (usuario != null) {
                                         JSONObject usuarioData = new JSONObject();
                                         usuarioData.put("id", i);
-                                        usuarioData.put("nome", usuario.optString("nome", ""));
-                                        usuarioData.put("tipo", usuario.optString("tipo", ""));
+                                        usuarioData.put("name", usuario.optString("name", ""));
+                                        usuarioData.put("type", usuario.optString("type", ""));
                                         usuarioData.put("email", usuario.optString("email", ""));
                                         usuariosArray.put(usuarioData);
                                     }
@@ -432,10 +572,10 @@ public class Servidor {
 						                JSONObject novosDados = dataIn.getJSONObject("novos_dados");
 						                
 						                // Atualize os dados do cadastro com as informações recebidas
-						                cadastros[usuarioId].put("nome", novosDados.optString("nome", ""));
+						                cadastros[usuarioId].put("name", novosDados.optString("name", ""));
 						                cadastros[usuarioId].put("email", novosDados.optString("email", ""));
-						                cadastros[usuarioId].put("tipo", novosDados.optString("tipo", ""));
-						                cadastros[usuarioId].put("senha", novosDados.optString("senha", ""));
+						                cadastros[usuarioId].put("type", novosDados.optString("type", ""));
+						                cadastros[usuarioId].put("password", novosDados.optString("password", ""));
 						                
 						                // Envie uma resposta de sucesso ao cliente
 						                JSONObject resposta = new JSONObject();
@@ -467,8 +607,10 @@ public class Servidor {
                             break;
                 }
                     } log("Servidor: Cliente desconectado: " + clientSocket.getInetAddress()+ ":"+ clientSocket.getLocalPort()+"/");
+                  
             } catch (IOException e) {
-                e.printStackTrace();
+            	log("Servidor:" + e.getMessage() + " no Ip:" + clientSocket.getInetAddress());
+                
             }
             
         }
