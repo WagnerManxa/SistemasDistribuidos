@@ -22,9 +22,7 @@ public class EditarUsuario extends JFrame {
     private JPasswordField senhaFieldEditar;
     private Socket socket;
     private TelaPrincipal telaPrincipal;
-    private PrintWriter out;
-    private BufferedReader in;
-    private static String token;
+    private String token;
 
     public EditarUsuario(Socket socket, TelaPrincipal telaPrincipal, String token) {
         this.socket = socket;
@@ -43,76 +41,36 @@ public class EditarUsuario extends JFrame {
         idUsuarioField = new JTextField();
         idUsuarioField.setPreferredSize(new Dimension(150, 25));
 
-        JButton buscarButton = new JButton("Buscar");
+        JLabel nomeLabelEditar = new JLabel("Nome:");
+        nomeFieldEditar = new JTextField(20);
+        nomeFieldEditar.setEnabled(false);
+        
+        JLabel emailLabelEditar = new JLabel("Email:");
+        emailFieldEditar = new JTextField(20);
+        emailFieldEditar.setEnabled(false);
+        
+        JLabel tipoLabelEditar = new JLabel("Tipo de Usuário:");
+        String[] tiposEditar = {"admin", "user"};
+        tipoComboBoxEditar = new JComboBox<>(tiposEditar);
+        tipoComboBoxEditar.setSelectedIndex(1);
+        tipoComboBoxEditar.setEnabled(false);
+        
+        JLabel senhaLabelEditar = new JLabel("Senha:");
+        senhaFieldEditar = new JPasswordField(20);
+
+        JButton buscarButton = new JButton("Buscar Usuário");
         buscarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 buscarUsuario();
             }
         });
 
-        // Adicione os campos para edição diretamente abaixo do botão "Buscar"
-        JLabel nomeLabelEditar = new JLabel("Nome:");
-        nomeFieldEditar = new JTextField(20);
-
-        JLabel emailLabelEditar = new JLabel("Email:");
-        emailFieldEditar = new JTextField(20);
-
-        JLabel tipoLabelEditar = new JLabel("Tipo de Usuário:");
-        String[] tiposEditar = {"admin", "user"};
-        tipoComboBoxEditar = new JComboBox<>(tiposEditar);
-        tipoComboBoxEditar.setSelectedIndex(1);
-
-        JLabel senhaLabelEditar = new JLabel("Senha:");
-        senhaFieldEditar = new JPasswordField(20);
-
-        constraints.gridy = 1;
-        panel.add(idUsuarioLabel, constraints);
-
-        constraints.gridx = 1;
-        panel.add(idUsuarioField, constraints);
-
-        constraints.gridy = 2;
-        constraints.gridx = 0;
-        panel.add(nomeLabelEditar, constraints);
-
-        constraints.gridx = 1;
-        panel.add(nomeFieldEditar, constraints);
-
-        constraints.gridy = 3;
-        constraints.gridx = 0;
-        panel.add(emailLabelEditar, constraints);
-
-        constraints.gridx = 1;
-        panel.add(emailFieldEditar, constraints);
-
-        constraints.gridy = 4;
-        constraints.gridx = 0;
-        panel.add(tipoLabelEditar, constraints);
-
-        constraints.gridx = 1;
-        panel.add(tipoComboBoxEditar, constraints);
-
-        constraints.gridy = 5;
-        constraints.gridx = 0;
-        panel.add(senhaLabelEditar, constraints);
-
-        constraints.gridx = 1;
-        panel.add(senhaFieldEditar, constraints);
-
-        constraints.gridy = 6;
-        constraints.gridx = 0;
-        panel.add(buscarButton, constraints);
-
-        JButton salvarButton = new JButton("Salvar");
-        //salvarButton.setEnabled(false);
+        JButton salvarButton = new JButton("Salvar Alterações");
         salvarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 salvarAlteracoes();
             }
         });
-
-        constraints.gridy = 7;
-        panel.add(salvarButton, constraints);
 
         JButton voltarButton = new JButton("Voltar");
         voltarButton.addActionListener(new ActionListener() {
@@ -121,149 +79,320 @@ public class EditarUsuario extends JFrame {
             }
         });
 
-        constraints.gridy = 8;
+        JButton cancelarButton = new JButton("Cancelar");
+        cancelarButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                limparCampos();
+            }
+        });
+
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        panel.add(idUsuarioLabel, constraints);
+
+        constraints.gridx = 1;
+        panel.add(idUsuarioField, constraints);
+
+        constraints.gridy = 1;
+        constraints.gridx = 0;
+        panel.add(nomeLabelEditar, constraints);
+
+        constraints.gridx = 1;
+        panel.add(nomeFieldEditar, constraints);
+
+        constraints.gridy = 2;
+        constraints.gridx = 0;
+        panel.add(emailLabelEditar, constraints);
+
+        constraints.gridx = 1;
+        panel.add(emailFieldEditar, constraints);
+
+        constraints.gridy = 3;
+        constraints.gridx = 0;
+        panel.add(tipoLabelEditar, constraints);
+
+        constraints.gridx = 1;
+        panel.add(tipoComboBoxEditar, constraints);
+
+        constraints.gridy = 4;
+        constraints.gridx = 0;
+        panel.add(senhaLabelEditar, constraints);
+
+        constraints.gridx = 1;
+        panel.add(senhaFieldEditar, constraints);
+
+        constraints.gridy = 5;
+        constraints.gridx = 1;
+        panel.add(buscarButton, constraints);
+
+        constraints.gridy = 6;
+        constraints.gridx = 1;
+        panel.add(salvarButton, constraints);
+
+        constraints.gridy = 6;
         constraints.gridx = 0;
         panel.add(voltarButton, constraints);
+
+        constraints.gridx = 0;
+        constraints.gridy = 5;
+        panel.add(cancelarButton, constraints);
 
         getContentPane().add(panel);
 
         pack();
         setLocationRelativeTo(null);
-
-        // Inicializar o PrintWriter e o BufferedReader aqui
-        try {
-            out = new PrintWriter(socket.getOutputStream(), true);
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    }
+    private void limparCampos() {
+    	nomeFieldEditar.setText("");
+        emailFieldEditar.setText("");
+        idUsuarioField.setText("");
+        senhaFieldEditar.setText("");
+        idUsuarioField.setEnabled(true);
+        senhaFieldEditar.setEnabled(false);
+    	nomeFieldEditar.setEnabled(false);
+        emailFieldEditar.setEnabled(false);
+        tipoComboBoxEditar.setEnabled(false);
     }
 
     private void buscarUsuario() {
-        String idUsuarioStr = idUsuarioField.getText();
-        if (idUsuarioStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor, informe o ID do usuário.");
-            return;
+    	if (JwtUtil.isUserAdmin(token)) {
+	        String idUsuarioStr = idUsuarioField.getText();
+	        if (idUsuarioStr.isEmpty()) {
+	            JOptionPane.showMessageDialog(this, "Por favor, informe o ID do usuário.");
+	            return;
+	        }
+	
+	        int idUsuario;
+	        try {
+	            idUsuario = Integer.parseInt(idUsuarioStr);
+	        } catch (NumberFormatException e) {
+	            JOptionPane.showMessageDialog(this, "ID do usuário deve ser um número inteiro.");
+	            return;
+	        }
+	
+	        JSONObject mensagem = new JSONObject();
+	        mensagem.put("action", "pedido-edicao-usuario");
+	        JSONObject data = new JSONObject();
+	        data.put("token", token);
+	        data.put("user_id", idUsuario);
+	        mensagem.put("data", data);
+	        try {
+	            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);        
+	            out.println(mensagem.toString());
+	            System.out.println("EditarUsuario-> Enviado para o servidor: "+mensagem);
+	
+	            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	            String resposta = in.readLine();
+	            senhaFieldEditar.setEnabled(false);
+	            System.out.println("EditarUsuario<- Recebida do servidor: "+resposta);
+	            
+	            JSONObject respostaJson = new JSONObject(resposta);
+	            String action = respostaJson.optString("action");
+	           	boolean error = respostaJson.optBoolean("error");
+	            String message = respostaJson.optString("message");
+	 
+	            if (!error) {
+	                JSONObject usuarioData = respostaJson.getJSONObject("data");
+	                String nome =usuarioData.getString("name");
+	                String email = usuarioData.getString("email");
+	                String tipo = usuarioData.getString("type");
+	                if (nome.isEmpty()) {
+	                    JOptionPane.showMessageDialog(this, "Nome não envaido pelo Servidor");
+	                    return;
+	                }
+	                if (email.isEmpty()) {
+	                    JOptionPane.showMessageDialog(this, "E-mail não envaido pelo Servidor");
+	                    return;
+	                }
+	                if (tipo.isEmpty()) {
+	                    JOptionPane.showMessageDialog(this, "Tipo de usuario não envaido pelo Servidor");
+	                    return;
+	                }
+	                if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == idUsuario) {
+	                	senhaFieldEditar.setEnabled(true);
+	                }
+	                idUsuarioField.setEnabled(false);
+	                nomeFieldEditar.setEnabled(true);
+	                emailFieldEditar.setEnabled(true);
+	                tipoComboBoxEditar.setEnabled(true);
+	                nomeFieldEditar.setText(nome);
+	                emailFieldEditar.setText(email);
+	                tipoComboBoxEditar.setSelectedItem(tipo);
+	                JOptionPane.showMessageDialog(this, message);
+	            }else {
+	            	 JOptionPane.showMessageDialog(this, message);
+	            	 limparCampos();
+	            }
+	
+	        } catch (SocketException se) {
+	            JOptionPane.showMessageDialog(this, "A conexão foi encerrada pelo servidor. Tente novamente.");
+	            voltarTelaPrincipal();
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	            JOptionPane.showMessageDialog(this, "Erro ao receber resposta do servidor.");
+	        }
+        } else {
+        	buscarMeusDados();
         }
-
-        int idUsuario;
-        try {
-            idUsuario = Integer.parseInt(idUsuarioStr);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "ID do usuário deve ser um número inteiro.");
-            return;
-        }
-
-        JSONObject mensagem = new JSONObject();
-        mensagem.put("action", "pedido-edicao-usuario");
-
+    	
+    }
+    
+    private void buscarMeusDados() {
+    	JSONObject mensagem = new JSONObject();
+        mensagem.put("action", "pedido-proprio-usuario");
         JSONObject data = new JSONObject();
-        data.put("token", "exemplo-de-token");
-        data.put("usuario_id", idUsuario);
-
+        data.put("token", token);
         mensagem.put("data", data);
-
-        out.println(mensagem.toString());
-
+        
         try {
-            // Agora, aguarda a resposta do servidor
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);        
+            out.println(mensagem.toString());
+            System.out.println("EditarUsuario-> Enviado para o servidor: "+mensagem);
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String resposta = in.readLine();
-
-            // Exiba a resposta no JTextArea (removido)
-
-            // Adicione lógica para preencher os campos de edição com os dados do usuário
+            senhaFieldEditar.setEnabled(false);
+            System.out.println("EditarUsuario<- Recebida do servidor: "+resposta);
+            
             JSONObject respostaJson = new JSONObject(resposta);
-            if (!respostaJson.getBoolean("error")) {
-                JSONObject usuarioData = respostaJson.getJSONObject("data");
-                nomeFieldEditar.setText(usuarioData.getString("nome"));
-                emailFieldEditar.setText(usuarioData.getString("email"));
-                tipoComboBoxEditar.setSelectedItem(usuarioData.getString("tipo"));
-                // Se necessário, trate a senha de maneira diferente, como não exibí-la aqui
+            String action = respostaJson.optString("action");
+           	boolean error = respostaJson.optBoolean("error");
+            String message = respostaJson.optString("message");
+ 
+            if (!error) {
+                JSONObject respostaData = respostaJson.getJSONObject("data");
+                JSONObject usuarioData = respostaData.getJSONObject("user");
+                String usuarioId = usuarioData.getString("id");
+                String nome = usuarioData.getString("name");
+                String email = usuarioData.getString("email");
+                String tipo = usuarioData.getString("type");
+                if (usuarioId.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Id não envaido pelo Servidor");
+                    return;
+                }
+                if (nome.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Nome não envaido pelo Servidor");
+                    return;
+                }
+                if (email.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "E-mail não envaido pelo Servidor");
+                    return;
+                }
+                if (tipo.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Tipo de usuario não envaido pelo Servidor");
+                    return;
+                }
+                idUsuarioField.setEnabled(false);
+                nomeFieldEditar.setEnabled(true);
+                emailFieldEditar.setEnabled(true);
+                if(JwtUtil.isUserAdmin(token)) {
+                	tipoComboBoxEditar.setEnabled(true);	
+                }else
+                	tipoComboBoxEditar.setEnabled(false);
+                senhaFieldEditar.setEnabled(true);
+                idUsuarioField.setText(usuarioId);
+                nomeFieldEditar.setText(nome);
+                emailFieldEditar.setText(email);
+                tipoComboBoxEditar.setSelectedItem(tipo);
+                JOptionPane.showMessageDialog(this, message);
+            }else {
+            	 JOptionPane.showMessageDialog(this, message);
             }
 
         } catch (SocketException se) {
-            // Trate a exceção específica para conexão fechada
-            JOptionPane.showMessageDialog(this, "A conexão foi fechada pelo servidor. Tente novamente.");
+            JOptionPane.showMessageDialog(this, "A conexão foi encerrada pelo servidor. Tente novamente.");
             voltarTelaPrincipal();
         } catch (IOException e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "Erro ao receber resposta do servidor.");
         }
     }
-
+    
     private void salvarAlteracoes() {
-        // Adicione a lógica para enviar as alterações para o servidor e tratar a resposta
-        // Exemplo:
-        String idUsuarioStr = idUsuarioField.getText();
-        if (idUsuarioStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor, informe o ID do usuário.");
-            return;
-        }
+    	
+	        String idUsuarioStr = idUsuarioField.getText();
+	        if (idUsuarioStr.isEmpty()) {
+	            JOptionPane.showMessageDialog(this, "Por favor, informe o ID do usuário.");
+	            return;
+	        }
+	
+	        int idUsuario;
+	        try {
+	            idUsuario = Integer.parseInt(idUsuarioStr);
+	        } catch (NumberFormatException e) {
+	            JOptionPane.showMessageDialog(this, "ID do usuário deve ser um número inteiro.");
+	            return;
+	        }
+	
+	        String nome = nomeFieldEditar.getText();
+	        String email = emailFieldEditar.getText();
+	        String tipo = (String) tipoComboBoxEditar.getSelectedItem();
+	        String senha = String.valueOf(senhaFieldEditar.getPassword());
+	
+	
+	        JSONObject mensagem = new JSONObject();
+	        JSONObject data = new JSONObject();
+	        if (JwtUtil.isUserAdmin(token)) {
+	        	mensagem.put("action", "edicao-usuario");
+	        	data.put("user_id", idUsuario);
+	        }else {
+	        	mensagem.put("action", "autoedicao-usuario");
+	        	data.put("id", idUsuario);
+	        }
+	       
+	        data.put("token", token);
+	        data.put("name", nome);
+	        data.put("email", email);
+	        data.put("type", tipo);
+	        if (!senha.isEmpty()) {
+	        	data.put("password", DigestUtils.md5Hex(senha).toUpperCase());
+	        }else {
+	        	data.put("password", "");
+	        }
+	        mensagem.put("data", data);
+	        
+	        try {
+	            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);           
+	            out.println(mensagem.toString());
+	            System.out.println("EditarUsuario-> Enviado para o servidor: "+mensagem);
+	    
+	            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+	            String resposta = in.readLine();
+	            System.out.println("EditarUsuario<- Resposta do servidor: " + resposta);
+	            
+	            JSONObject respostaJson = new JSONObject(resposta);
+	            String action = respostaJson.optString("action");
+	           	boolean error = respostaJson.optBoolean("error");
+	            String message = respostaJson.optString("message");
+	            if(error) {
+	            	JOptionPane.showMessageDialog(this, message);
+	            	return;
+	            }else {
+	            	JOptionPane.showMessageDialog(this, message);
+	            	limparCampos();
+	            }
+	
+	        } catch (SocketException se) {
+	            JOptionPane.showMessageDialog(this, "A conexão foi encerrada pelo servidor. Tente novamente.");
+	            voltarTelaPrincipal();
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	            JOptionPane.showMessageDialog(this, "Erro ao receber resposta do servidor.");
+	        }
 
-        int idUsuario;
-        try {
-            idUsuario = Integer.parseInt(idUsuarioStr);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "ID do usuário deve ser um número inteiro.");
-            return;
-        }
-
-        String nome = nomeFieldEditar.getText();
-        String email = emailFieldEditar.getText();
-        String tipo = (String) tipoComboBoxEditar.getSelectedItem();
-        String senha = new String(senhaFieldEditar.getPassword());
-        String senhaMD5 = DigestUtils.md5Hex(senha).toUpperCase();
-        if (senha.length() < 6) {
-            JOptionPane.showMessageDialog(this, "A senha deve ter no mínimo 6 caracteres.");
-            return;
-        }
-
-        JSONObject mensagem = new JSONObject();
-        mensagem.put("action", "salvar-alteracoes-usuario");
-
-        JSONObject data = new JSONObject();
-        data.put("token", "exemplo-de-token");
-        data.put("usuario_id", idUsuario);
-        data.put("nome", nome);
-        data.put("email", email);
-        data.put("tipo", tipo);
-        data.put("senha", senhaMD5);
-        mensagem.put("data", data);
-
-        out.println(mensagem.toString());
-
-        try {
-        	
-            // Agora, aguarda a resposta do servidor
-            String resposta = in.readLine();
-
-            // Exiba a resposta ou trate conforme necessário
-            JOptionPane.showMessageDialog(this, "Resposta do servidor: " + resposta);
-
-        } catch (SocketException se) {
-            // Trate a exceção específica para conexão fechada
-            JOptionPane.showMessageDialog(this, "A conexão foi fechada pelo servidor. Tente novamente.");
-            voltarTelaPrincipal();
-        } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Erro ao receber resposta do servidor.");
-        }
     }
 
     private void voltarTelaPrincipal() {
+    	limparCampos();
         setVisible(false);
         telaPrincipal.setVisible(true);
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                // Substitua por código real para obter o socket e a tela principal
-                Socket socket = new Socket();
-                TelaPrincipal telaPrincipal = new TelaPrincipal(socket, token, null);
-                EditarUsuario editarUsuario = new EditarUsuario(socket, telaPrincipal, token);
-                editarUsuario.setVisible(true);
-            }
-        });
-    }
+    public void atualizarSocket(Socket novoSocket) {
+        this.socket = novoSocket;
+    }  
+    
+    public void atualizarToken(String novoToken) {
+        this.token = novoToken;
+    } 
 }

@@ -142,6 +142,7 @@ public class CadastroUsuario extends JFrame {
                 String action = respostaJSON.optString("action");
                	boolean error = respostaJSON.optBoolean("error");
                 String message = respostaJSON.optString("message");
+
              if (!error) {
                 JOptionPane.showMessageDialog(this, message);
                 setVisible(false);

@@ -148,8 +148,9 @@ public class ClienteLogin extends JFrame {
                 
                 if(!error) {                
                 JSONObject dataResposta = respostaJSON.optJSONObject("data");
-                this.token = dataResposta.optString("token","");            
-                	
+                this.token = dataResposta.optString("token","");        
+                
+                                	
                 switch (action) {
 				case "login": {
 

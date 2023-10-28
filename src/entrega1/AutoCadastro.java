@@ -138,8 +138,10 @@ public class AutoCadastro extends JFrame {
             }else {
             	System.out.println("AutoCadastro<-Recebida do servidor: "+resposta);
                 JSONObject respostaJSON = new JSONObject(resposta);
+                String action = respostaJSON.optString("action", "");
                 boolean error = respostaJSON.optBoolean("error");
                 String message = respostaJSON.optString("message", "");
+                
 
                 if (!error) {
                     JOptionPane.showMessageDialog(this, message);

@@ -38,14 +38,13 @@ public class TelaPrincipal extends JFrame {
         });
         panel.add(cadastrarUsuarioButton);
 
-        JButton listarUsuariosButton = new JButton("Listar Usuários");
-        listarUsuariosButton.setEnabled(false);
-        listarUsuariosButton.addActionListener(new ActionListener() {
+        JButton informacaoUsuarioButton = new JButton("Informações de Usuários");
+        informacaoUsuarioButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 listarUsuarios();
             }
         });
-        panel.add(listarUsuariosButton);
+        panel.add(informacaoUsuarioButton);
 
         JButton editarUsuarioButton = new JButton("Editar Usuário");
         editarUsuarioButton.addActionListener(new ActionListener() {
@@ -74,6 +73,9 @@ public class TelaPrincipal extends JFrame {
         add(panel);
         setLocationRelativeTo(null);
     }
+    private void showConnectionLostAlert() {
+        JOptionPane.showMessageDialog(this, "Conexão com o servidor perdida!");
+    }
     
     public void atualizarSocket(Socket novoSocket) {
         this.socket = novoSocket;
@@ -84,30 +86,28 @@ public class TelaPrincipal extends JFrame {
 
     private void abrirCadastroUsuario() {
         CadastroUsuario cadastroUsuario = new CadastroUsuario(socket, this,token);
-        cadastroUsuario.atualizarToken(this.token);;
+        cadastroUsuario.atualizarToken(this.token);
         cadastroUsuario.setVisible(true);
         this.dispose();
     }
-    private void showConnectionLostAlert() {
-        JOptionPane.showMessageDialog(this, "Conexão com o servidor perdida!");
-    }
-
-
+    
     private void listarUsuarios() {
-    	ListarUsuario listarUsuario = new ListarUsuario(socket,null, this.token);
+    	InformacaoUsuario listarUsuario = new InformacaoUsuario(socket,this, this.token);
+    	listarUsuario.atualizarToken(this.token);
     	listarUsuario.setVisible(true);
-        //JOptionPane.showMessageDialog(this, "Operação de Listar Usuários");
-        // Lógica para a operação de listar usuários
+
     }
 
     private void abrirEditarUsuario() {
         EditarUsuario editarUsuario = new EditarUsuario(socket, this, this.token);
+        editarUsuario.atualizarToken(this.token);
         editarUsuario.setVisible(true);
     }
 
     private void excluirUsuario() {
-        JOptionPane.showMessageDialog(this, "Operação de Excluir Usuário");
-        // Lógica para a operação de excluir usuário
+        ExcluirUsuario excluirUsuario = new ExcluirUsuario(socket, this, this.token);
+        excluirUsuario.atualizarToken(this.token);
+        excluirUsuario.setVisible(true);
     }
 
     private void voltarTelaLogin() {
@@ -171,7 +171,7 @@ public class TelaPrincipal extends JFrame {
 			    voltarTelaLogin();
 			} catch (IOException e) {
 			    // Trate a exceção de IO aqui
-			    System.out.println("TelaPrincipal->Erro ao tentar enviar comandode logout ao servidor: " + e.getMessage());
+			    System.out.println("TelaPrincipal->Erro ao tentar enviar comando de logout ao servidor: " + e.getMessage());
 			    showConnectionLostAlert();
 			    
 			}
