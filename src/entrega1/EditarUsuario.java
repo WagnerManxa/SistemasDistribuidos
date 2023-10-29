@@ -192,10 +192,12 @@ public class EditarUsuario extends JFrame {
 	            String message = respostaJson.optString("message");
 	 
 	            if (!error) {
-	                JSONObject usuarioData = respostaJson.getJSONObject("data");
+	            	JSONObject respostaData = respostaJson.getJSONObject("data");
+	                JSONObject usuarioData = respostaData.getJSONObject("user");
 	                String nome =usuarioData.getString("name");
 	                String email = usuarioData.getString("email");
 	                String tipo = usuarioData.getString("type");
+	                String id = usuarioData.getString("id");
 	                if (nome.isEmpty()) {
 	                    JOptionPane.showMessageDialog(this, "Nome não envaido pelo Servidor");
 	                    return;
@@ -215,6 +217,7 @@ public class EditarUsuario extends JFrame {
 	                nomeFieldEditar.setEnabled(true);
 	                emailFieldEditar.setEnabled(true);
 	                tipoComboBoxEditar.setEnabled(true);
+	                idUsuarioField.setText(id);
 	                nomeFieldEditar.setText(nome);
 	                emailFieldEditar.setText(email);
 	                tipoComboBoxEditar.setSelectedItem(tipo);

@@ -620,7 +620,7 @@ public class Servidor {
                                 usuarioData.put("type", cadastros[id].optString("type", ""));
                                 usuarioData.put("email", cadastros[id].optString("email", ""));
                                 JSONObject dataResposta = new JSONObject();
-                                resposta.put("action", "listar-usuarios");
+                                resposta.put("action", "pedido-proprio-usuario");
                                 resposta.put("error", false);
                                 resposta.put("message", "Seus dados listados com sucesso! \nMotivo: Usuário: tipo 'user'!");
                                 dataResposta.put("user", usuarioData);
@@ -650,6 +650,7 @@ public class Servidor {
                                 cadastroSemSenha.put("name", cadastros[usuarioId].optString("name", ""));
                                 cadastroSemSenha.put("email", cadastros[usuarioId].optString("email", ""));
                                 cadastroSemSenha.put("type", cadastros[usuarioId].optString("type", ""));
+                                cadastroSemSenha.put("id", String.valueOf(usuarioId));
                                 
                                 JSONObject usuarioData = new JSONObject(cadastroSemSenha.toString());
                                 
@@ -678,10 +679,12 @@ public class Servidor {
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                     break;     
                                 }
-                                
+                                JSONObject user = new JSONObject();
+                                user.put("user", usuarioData);
+                                		
                                 resposta.put("error", false);
                                 resposta.put("message", "Sucesso!");
-                                resposta.put("data", usuarioData);
+                                resposta.put("data", user);
                                 out.println(resposta.toString());
                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                             }
@@ -737,7 +740,15 @@ public class Servidor {
 				                cadastros[usuarioId].put("name", nome);
 				                cadastros[usuarioId].put("email", email);
 				                cadastros[usuarioId].put("type", tipo);
-				                if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == usuarioId)) {						                	
+				                if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == usuarioId)) {
+				                	if (BCrypt.checkpw(senha, cadastros[usuarioId].optString("password", ""))){
+			                		resposta.put("action", "edicao-usuario");
+						            resposta.put("error", true);
+						            resposta.put("message", "A senha nova deve ser diferente da atual.");
+						            out.println(resposta.toString());
+						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+					                break;
+				                }
 				                	cadastros[usuarioId].put("password", hashearSenha(senha));
 				                } else if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId)){
 				                	resposta.put("action", "edicao-usuario");
@@ -759,10 +770,10 @@ public class Servidor {
 				            } 
 						    break;
 						case "autoedicao-usuario":{
-							
+			                JSONObject resposta = new JSONObject();
+
 							if (dataIn == null) {
 					                // Envie uma resposta de erro ao cliente se "novos_dados" estiver ausente
-					                JSONObject resposta = new JSONObject();
 					                resposta.put("action", "autoedicao-usuario");
 					                resposta.put("error", true);
 					                resposta.put("message", "Chave 'data' esta vazia");
@@ -779,7 +790,6 @@ public class Servidor {
                              int usuarioId = dataIn.optInt("id", -1);
 
 						        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
-						            JSONObject resposta = new JSONObject();
 						            resposta.put("action", "autoedicao-usuario");
 						            resposta.put("error", true);
 						            resposta.put("message", "Usuário não encontrado.");
@@ -788,8 +798,6 @@ public class Servidor {
 					                break;
 						        }
 						        if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId) {
-					                // Envie uma resposta de erro ao cliente se "novos_dados" estiver ausente
-					                JSONObject resposta = new JSONObject();
 					                resposta.put("action", "autoedicao-usuario");
 					                resposta.put("error", true);
 					                resposta.put("message", "Você só pode alterar sua senha");
@@ -799,7 +807,6 @@ public class Servidor {
 					            }
 
 						        if (!isValidEmail(email)){
-						            JSONObject resposta = new JSONObject();
 						            resposta.put("action", "autoedicao-usuario");
 						            resposta.put("error", true);
 						            resposta.put("message", "Email invalido");
@@ -808,7 +815,6 @@ public class Servidor {
 					                break;
 						        }
 						        if ((!(cadastros[usuarioId].optString("email", "")).equals(email))&& isEmailAlreadyRegistered(email)) {						        	
-									JSONObject resposta = new JSONObject();
 									resposta.put("action", "autoedicao-usuario");
 									resposta.put("error", true);
 									resposta.put("message", "Email informado ja esta sendo utilizado em outro cadastro");
@@ -817,15 +823,20 @@ public class Servidor {
 									break;															        	
 						        }
 						        
-						                // Atualize os dados do cadastro com as informações recebidas
 						                cadastros[usuarioId].put("name", nome);
 						                cadastros[usuarioId].put("email", email);
 						                cadastros[usuarioId].put("type", tipo);
-						                if(!senha.isEmpty()) {						                	
+						                if(!senha.isEmpty()) {	
+						                	if (BCrypt.checkpw(senha, cadastros[usuarioId].optString("password", ""))){
+						                		resposta.put("action", "edicao-usuario");
+									            resposta.put("error", true);
+									            resposta.put("message", "A senha nova deve ser diferente da atual.");
+									            out.println(resposta.toString());
+									            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+								                break;
+							                }
 							                cadastros[usuarioId].put("password", hashearSenha(senha));
 							                }
-						                // Envie uma resposta de sucesso ao cliente
-						                JSONObject resposta = new JSONObject();
 						                resposta.put("action", "autoedicao-usuario");
 						                resposta.put("error", false);
 						                resposta.put("message", "Alterações salvas com sucesso.");
