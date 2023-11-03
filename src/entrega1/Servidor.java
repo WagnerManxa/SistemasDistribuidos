@@ -168,7 +168,7 @@ public class Servidor {
         return id;
     }
     
-    public boolean isAdmin(String usuario) {
+    private boolean isAdmin(String usuario) {
     	 for (JSONObject cadastro : cadastros) {
              if (cadastro != null && usuario.equals(cadastro.optString("email", ""))
                      && ("admin").equals(cadastro.optString("type", ""))) {
@@ -194,6 +194,7 @@ public class Servidor {
 	     novo.put("token", token);
 	     novo.put("email", email);
 	     novo.put("ip", ip);
+	     novo.put("only-logout", false);
 	     userTokens[posicao] = novo;   
 	     userListTextArea.append(email+ip+ "\n");
    }
@@ -209,6 +210,28 @@ public class Servidor {
             	break;
             }    		
 		}
+    }
+    private void setOnlyLogoutAllowed(String token) {
+    	for (int i = 0; i < userTokens.length; i++) {
+            if (userTokens[i] != null && userTokens[i].optString("usuarioId","").equals(JwtUtil.getUserIdFromToken(token))) {
+            	userTokens[i].put("only-logout",true);
+            	break;
+            }    		
+		}
+    }
+    
+    private boolean isOnlyLogoutAllowed(String token) {
+    	Boolean  onlyLogout = false;
+    
+    	for (int i = 0; i < userTokens.length; i++) {
+            if (userTokens[i] != null && userTokens[i].optString("usuarioId","").equals(JwtUtil.getUserIdFromToken(token))) {
+            	onlyLogout = userTokens[i].getBoolean("only-logout");
+            	break;
+            }   
+    	}
+
+    	return onlyLogout; 
+    	
     }
     
     private boolean isOnUserToken(String token) {
@@ -258,15 +281,7 @@ public class Servidor {
         }
         return false; // E-mail não encontrado
     }
-    
-    public void imprimeTokens() {
-    	for (int i = 0; i < userTokens.length; i++) {
-            if (userTokens[i] != null ) {
-            	System.out.println("Posicao: "+i +" "+userTokens[i].optString("usuarioId","")+": token:"+userTokens[i].optString("token",""));
-            }    	
-    	}
-    }
-    
+       
     private class ServerListener implements Runnable {
         private int portNumber;
 
@@ -315,10 +330,28 @@ public class Servidor {
                     JSONObject dataIn = mensagem.optJSONObject("data");
                     
                     switch (action) {
-                        case "login":
+                        case "login": {
                             if (dataIn != null) {
                                 String email = dataIn.optString("email", "");
                                 String senha = dataIn.optString("password", "");
+                                if (email.isEmpty()) {
+                                	JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "login");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Informe um e-mail.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+                                if (senha.isEmpty()) {
+                                	JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "login");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Informe a senha.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
                                 
                                 if (!isValidEmail(email)) {
                                     // Se o e-mail não for válido, responda ao cliente com um erro
@@ -359,10 +392,19 @@ public class Servidor {
                                     break;
                                    
                                 }
+                            } else {
+                            	JSONObject resposta = new JSONObject();
+                                resposta.put("action", "login");
+                                resposta.put("error", true);
+                                resposta.put("message", "Campo 'data' está vazio.");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                
                             }
+                    
                             break;
-                        
-                        case "logout":
+                        }
+                        case "logout":{
                             if (dataIn != null) {
                                 String token = dataIn.optString("token", "");
                                 if (isValidToken(token)) {    
@@ -381,12 +423,18 @@ public class Servidor {
                                     out.println(resposta.toString());
                                     log("Logout falhou no: "+ clientSocket.getInetAddress());
                                 }
-                                
                             }
-                            break;
-
-                            
-                            
+                            else {
+                                JSONObject resposta = new JSONObject();
+                                resposta.put("action", "logout");
+                                resposta.put("error", true);
+                                resposta.put("message", "Informe a senha.");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                break;
+                                }
+                            break;                            
+                        }
                         case "cadastro-usuario":
                             if (dataIn != null) {
                                 String nome = dataIn.optString("name", "");
@@ -394,6 +442,16 @@ public class Servidor {
                                 String email = dataIn.optString("email", "");
                                 String tipo = dataIn.optString("type", "");
                                 String senha = dataIn.optString("password", "");
+                                
+                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                	JSONObject resposta = new JSONObject();
+                                    resposta.put("action", action);
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
 
                                 // Validação de entrada
                                 if (nome.isEmpty() || email.isEmpty() || tipo.isEmpty() || senha.isEmpty()) {
@@ -403,12 +461,10 @@ public class Servidor {
                                     resposta.put("message", "Falha ao cadastrar. Dados de entrada incompletos.");
                                     out.println(resposta.toString());
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
-
                                     break;
                                 }
                                 
                                 if (!isValidEmail(email)) {
-                                    // Se o e-mail não for válido, responda ao cliente com um erro
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "cadastro-usuario");
                                     resposta.put("error", true);
@@ -419,7 +475,6 @@ public class Servidor {
                                 }
                                 
                                 if (isEmailAlreadyRegistered(email)) {
-                                    // Se o e-mail já estiver cadastrado, responda ao cliente com um erro
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "cadastro-usuario");
                                     resposta.put("error", true);
@@ -429,9 +484,7 @@ public class Servidor {
                                     break;
                                 }
 
-                                // Verifica permissões de usuário
-                                if (!JwtUtil.isUserAdmin(token) && tipo.equals("admin")) {
-                                    // Responde ao cliente com erro se o usuário não tem permissão para cadastrar um administrador
+                                if (!JwtUtil.isUserAdmin(token) && ("admin").equals(tipo)) {
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "cadastro-usuario");
                                     resposta.put("error", true);
@@ -440,10 +493,9 @@ public class Servidor {
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
 
                                 } else {
-                                    int usuarioId = encontrarPosicaoVaziaCadastros();
+                                    Integer usuarioId = encontrarPosicaoVaziaCadastros();
 
                                     if (usuarioId >= 0 && usuarioId < cadastros.length) {
-                                        // Cria um novo cadastro de usuário
                                         JSONObject novoCadastro = new JSONObject();
                                         novoCadastro.put("name", nome);
                                         novoCadastro.put("email", email);
@@ -451,7 +503,6 @@ public class Servidor {
                                         novoCadastro.put("password", hashearSenha(senha));
                                         cadastros[usuarioId] = novoCadastro;
 
-                                        // Responde com sucesso ao cliente
                                         JSONObject resposta = new JSONObject();
                                         resposta.put("action", "cadastro-usuario");
                                         resposta.put("error", false);
@@ -460,7 +511,6 @@ public class Servidor {
                                         out.println(resposta.toString());
 
                                     } else {
-                                        // Responde ao cliente com erro se o vetor não tem posição válida
                                         JSONObject resposta = new JSONObject();
                                         resposta.put("action", "cadastro-usuario");
                                         resposta.put("error", true);
@@ -470,6 +520,14 @@ public class Servidor {
 
                                     }
                                 }
+                            }else {
+                            	JSONObject resposta = new JSONObject();
+                                resposta.put("action", "cadastro-usuario");
+                                resposta.put("error", true);
+                                resposta.put("message", "Campo 'data' vazio.");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+                                break;
                             }
                             break;
                             
@@ -479,8 +537,8 @@ public class Servidor {
                                 String email = dataIn.optString("email", "");
                                 String tipo = "user";
                                 String senha = dataIn.optString("password", "");
+                                
 
-                                // Validação de entrada
                                 if (nome.isEmpty() || email.isEmpty() || senha.isEmpty()) {
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "autocadastro-usuario");
@@ -492,7 +550,6 @@ public class Servidor {
                                     break;
                                 }
                                 if (!isValidEmail(email)) {
-                                    // Se o e-mail não for válido, responda ao cliente com um erro
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "autocadastro-usuario");
                                     resposta.put("error", true);
@@ -503,7 +560,6 @@ public class Servidor {
                                 }
                                 
                                 if (isEmailAlreadyRegistered(email)) {
-                                    // Se o e-mail já estiver cadastrado, responda ao cliente com um erro
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "autocadastro-usuario");
                                     resposta.put("error", true);
@@ -513,10 +569,9 @@ public class Servidor {
                                     break;
                                 }
 
-                                    int usuarioId = encontrarPosicaoVaziaCadastros();
+                                    Integer usuarioId = encontrarPosicaoVaziaCadastros();
 
                                     if (usuarioId >= 0 && usuarioId < cadastros.length) {
-                                        // Cria um novo cadastro de usuário
                                         JSONObject novoCadastro = new JSONObject();
                                         novoCadastro.put("name", nome);
                                         novoCadastro.put("email", email);
@@ -524,7 +579,6 @@ public class Servidor {
                                         novoCadastro.put("password", hashearSenha(senha));
                                         cadastros[usuarioId] = novoCadastro;
 
-                                        // Responde com sucesso ao cliente
                                         JSONObject resposta = new JSONObject();
                                         resposta.put("action", "autocadastro-usuario");
                                         resposta.put("error", false);
@@ -542,8 +596,19 @@ public class Servidor {
                                         log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
 
                                     }
-                                
                             }
+                                    
+							else {
+								JSONObject resposta = new JSONObject();
+								resposta.put("action", "autocadastro-usuario");
+								resposta.put("error", true);
+								resposta.put("message", "Falha! Campo 'data' vazio.");
+								out.println(resposta.toString());
+								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+								break;
+							}
+							                            
+                            
                             break;
 
 
@@ -553,10 +618,19 @@ public class Servidor {
                                 String token = dataIn.optString("token", ""); // Obtém o token do usuário
                                 JSONObject resposta = new JSONObject();
                                 
+                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                    resposta.put("action", action);
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+                                
                                 if (token.isEmpty()) {
                                     resposta.put("action", "listar-usuarios");
                                     resposta.put("error", true);
-                                    resposta.put("message", "Token vazio");
+                                    resposta.put("message", "Campo 'token' vazio");
                                     out.println(resposta.toString());
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                     break;
@@ -593,18 +667,36 @@ public class Servidor {
                                 resposta.put("data", dataResposta);
                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                 out.println(resposta.toString());
+                                } else {
+                                	JSONObject resposta = new JSONObject();
+                                    resposta.put("action", "listar-usuario");
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Falha ao listar. Campo 'data' não encontrado.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+                                    break;
                                 }
                             
                             break;
                             
-                        case "pedido-proprio-usuario":
+                        case "pedido-proprio-usuario":{
                         	if (dataIn != null) {
                                 String token = dataIn.optString("token", ""); // Obtém o token do usuário
                                 JSONObject resposta = new JSONObject();
+                                
+                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                    resposta.put("action", action);
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+                                
                                 if (token.isEmpty()) {
                                     resposta.put("action", "pedido-proprio-usuario");
                                     resposta.put("error", true);
-                                    resposta.put("message", "Token vazio");
+                                    resposta.put("message", "Campo 'token' vazio");
                                     out.println(resposta.toString());
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                     break;
@@ -613,9 +705,9 @@ public class Servidor {
                                 resposta.put("error", false); 
                                 resposta.put("message", "Sucesso");                                
                                	
-                            	int id = Integer.parseInt(JwtUtil.getUserIdFromToken(token));
+                            	Integer id = Integer.parseInt(JwtUtil.getUserIdFromToken(token));
                             	JSONObject usuarioData = new JSONObject();
-                                usuarioData.put("id", String.valueOf(id));
+                                usuarioData.put("id", id);
                                 usuarioData.put("name", cadastros[id].optString("name", ""));
                                 usuarioData.put("type", cadastros[id].optString("type", ""));
                                 usuarioData.put("email", cadastros[id].optString("email", ""));
@@ -628,17 +720,45 @@ public class Servidor {
                                     
                                 out.println(resposta.toString());
                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
-                        	}
+                        	} else {
+                        		JSONObject resposta = new JSONObject();
+                                resposta.put("action", "pedido-proprio-usuario");
+                                resposta.put("error", true);
+                                resposta.put("message", "Falha. Campo 'data' não encontrado.");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+                                break;
+                            }
+                        }
                         	break;
 
                             
-                        case "pedido-edicao-usuario":
+                        case "pedido-edicao-usuario":{
                             if (dataIn != null) {
                             	String token = dataIn.optString("token", "");
-                                int usuarioId = dataIn.optInt("user_id", -1);
+                                Integer usuarioId = dataIn.optInt("user_id");
+                                
+                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                	JSONObject resposta = new JSONObject();
+                                    resposta.put("action", action);
+                                    resposta.put("error", true);
+                                    resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                    break;
+                                }
+                                
+                                
                                 JSONObject resposta = new JSONObject();
                                 resposta.put("action", "pedido-edicao-usuario");
-                                if (usuarioId > cadastros.length || cadastros[usuarioId] == null) { 
+                                if (!JwtUtil.isUserAdmin(token)) {
+                                	resposta.put("error", true);
+                                    resposta.put("message", "Usuario sem permissao");
+                                    out.println(resposta.toString());
+                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+                                    break;
+                                }
+                                if (usuarioId > cadastros.length || cadastros[usuarioId] == null || usuarioId < 0) { 
                                 	resposta.put("error", true);
                                     resposta.put("message", "Usuário não encontrado");
                                     resposta.put("data", "");
@@ -646,102 +766,292 @@ public class Servidor {
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                     break;                    
                                 }
-                                JSONObject cadastroSemSenha = new JSONObject();
-                                cadastroSemSenha.put("name", cadastros[usuarioId].optString("name", ""));
-                                cadastroSemSenha.put("email", cadastros[usuarioId].optString("email", ""));
-                                cadastroSemSenha.put("type", cadastros[usuarioId].optString("type", ""));
-                                cadastroSemSenha.put("id", String.valueOf(usuarioId));
-                                
-                                JSONObject usuarioData = new JSONObject(cadastroSemSenha.toString());
-                                
-                                if (!JwtUtil.isUserAdmin(token)) {
-                                	resposta.put("error", true);
-                                    resposta.put("message", "Usuario sem permissao");
-                                    resposta.put("data", usuarioData);
-                                    out.println(resposta.toString());
-                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
-                                    break;
-                                } 
-
-                                if (!(usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] != null)) { 
-                                	resposta.put("error", true);
-                                    resposta.put("message", "Usuário não encontrado");
-                                    resposta.put("data", usuarioData);
-                                    out.println(resposta.toString());
-                                    log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
-                                    break;                    
-                                }
-                                if (cadastroSemSenha.isEmpty()) {
+                                JSONObject dadosEncontrados = new JSONObject();
+                                dadosEncontrados.put("name", cadastros[usuarioId].optString("name", ""));
+                                dadosEncontrados.put("email", cadastros[usuarioId].optString("email", ""));
+                                dadosEncontrados.put("type", cadastros[usuarioId].optString("type", ""));
+                                dadosEncontrados.put("id", usuarioId);
+                                                                                                
+                                if (dadosEncontrados.isEmpty()) {
                                 	resposta.put("error", true);
                                     resposta.put("message", "Usuário encontrado encontrado porém sem informacoes no cadastro");
-                                    resposta.put("data", usuarioData);
+                                    resposta.put("data", dadosEncontrados);
                                     out.println(resposta.toString());
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                     break;     
                                 }
                                 JSONObject user = new JSONObject();
-                                user.put("user", usuarioData);
-                                		
+                                user.put("user", dadosEncontrados);                                		
                                 resposta.put("error", false);
                                 resposta.put("message", "Sucesso!");
                                 resposta.put("data", user);
                                 out.println(resposta.toString());
                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                             }
+                            else {
+                            	JSONObject resposta = new JSONObject();
+                            	resposta.put("error", true);
+                                resposta.put("message", "Erro! Campo 'data' está vazio.");
+                                resposta.put("data", "");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
+                                break;
+                            }
                             break;
-                            
+                        }
                             
                             
 
 						case "edicao-usuario":{
 			                JSONObject resposta = new JSONObject();
 							if (dataIn == null) {
-					                // Envie uma resposta de erro ao cliente se "novos_dados" estiver ausente
 					                resposta.put("action", "edicao-usuario");
 					                resposta.put("error", true);
-					                resposta.put("message", "Chave 'data' esta vazia");
+					                resposta.put("message", "Erro!. Campo 'data' esta vazia");
 					                out.println(resposta.toString());
 					                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 					                break;
 					            }
 
 							 String token = dataIn.optString("token", "");
+							 
+							 if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                 resposta.put("action", action);
+                                 resposta.put("error", true);
+                                 resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                 out.println(resposta.toString());
+                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                 break;
+                             }
+							 
 							 String nome = dataIn.optString("name", "");
                              String email = dataIn.optString("email", "");
                              String tipo = dataIn.optString("type", "");
                              String senha = dataIn.optString("password", "");
-                             int usuarioId = dataIn.optInt("user_id", -1);
+                             Integer usuarioId = dataIn.optInt("user_id");
+                             if(token.isEmpty()) {
+                            	resposta.put("action", "edicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Erro. Token não informado");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+                             }
+                             if(nome.isEmpty()) {
+                             	resposta.put("action", "edicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Nome não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+                             if(email.isEmpty()) {
+                             	resposta.put("action", "edicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Email não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+                             if(tipo.isEmpty()) {
+                             	resposta.put("action", "edicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Tipo de usuário não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+                             if((usuarioId.toString()).isEmpty()) {
+                             	resposta.put("action", "edicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Id do usuário não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             } 
+                             if (usuarioId == 0 )  {
+ 					            resposta.put("action", "edicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Falha! Você não pode alterar o usuário admin@admin.com");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+ 					        }
 
-						        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
-						            resposta.put("action", "edicao-usuario");
+					        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
+					            resposta.put("action", "edicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Usuário não encontrado.");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
+					        
+					        if (!isValidEmail(email)){
+					            resposta.put("action", "edicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Email invalido");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
+					        if ((!(cadastros[usuarioId].optString("email", "")).equals(email)) && isEmailAlreadyRegistered(email)) {						        	
+								resposta.put("action", "edicao-usuario");
+								resposta.put("error", true);
+								resposta.put("message", "Email informado ja esta sendo utilizado em outro cadastro");
+								out.println(resposta.toString());
+								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+								break;															        	
+					        }
+			               if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == usuarioId)) {
+			                	if (BCrypt.checkpw(senha, cadastros[usuarioId].optString("password", ""))){
+			                		resposta.put("action", "edicao-usuario");
 						            resposta.put("error", true);
-						            resposta.put("message", "Usuário não encontrado.");
+						            resposta.put("message", "A senha nova deve ser diferente da atual.");
 						            out.println(resposta.toString());
 						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 					                break;
-						        }
-						        
-						        if (!isValidEmail(email)){
-						            resposta.put("action", "edicao-usuario");
-						            resposta.put("error", true);
-						            resposta.put("message", "Email invalido");
-						            out.println(resposta.toString());
-						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-					                break;
-						        }
-						        if ((!(cadastros[usuarioId].optString("email", "")).equals(email))&& isEmailAlreadyRegistered(email)) {						        	
-									resposta.put("action", "edicao-usuario");
-									resposta.put("error", true);
-									resposta.put("message", "Email informado ja esta sendo utilizado em outro cadastro");
-									out.println(resposta.toString());
-									log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-									break;															        	
-						        }
-				                cadastros[usuarioId].put("name", nome);
-				                cadastros[usuarioId].put("email", email);
-				                cadastros[usuarioId].put("type", tipo);
-				                if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == usuarioId)) {
-				                	if (BCrypt.checkpw(senha, cadastros[usuarioId].optString("password", ""))){
+			                	}
+			                	cadastros[usuarioId].put("password", hashearSenha(senha));
+			                } else if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId)){
+			                	resposta.put("action", "edicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Não autorizado! Você pode alterar somente sua própria senha.");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+			                }
+			               if (JwtUtil.getUserIdFromToken(token).equals(usuarioId.toString()) && (!tipo.equals(cadastros[usuarioId].optString("type","")))) {
+			            	   cadastros[usuarioId].put("name", nome);
+			            	   cadastros[usuarioId].put("type", tipo);
+			            	   cadastros[usuarioId].put("email", email);
+			            	   resposta.put("action", "edicao-usuario");
+					           resposta.put("error", false);
+					           resposta.put("message", "Sucesso! Você alterou suas permissões. Favor fazer login novamente.");
+					           out.println(resposta.toString());
+					           log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+					           setOnlyLogoutAllowed(token);
+				               break;
+			               }
+							cadastros[usuarioId].put("name", nome);
+							cadastros[usuarioId].put("type", tipo);
+							cadastros[usuarioId].put("email", email);
+			                
+			                resposta.put("action", "edicao-usuario");
+			                resposta.put("error", false);
+			                resposta.put("message", "Alterações salvas com sucesso.");
+			                out.println(resposta.toString());
+			                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+			                if (isOnUserToken(token)) {
+					        	deleteUserToken(token);
+					        	addUserToken(token, clientSocket.getInetAddress());
+					        }						        
+						} 
+						break;
+						
+						case "autoedicao-usuario":{
+			                JSONObject resposta = new JSONObject();
+							if (dataIn == null) {
+								resposta.put("action", "autoedicao-usuario");
+								resposta.put("error", true);
+								resposta.put("message", "Chave 'data' esta vazia");
+								out.println(resposta.toString());
+								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+								break;
+							}							
+							String token = dataIn.optString("token", "");
+							
+							if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                resposta.put("action", action);
+                                resposta.put("error", true);
+                                resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                break;
+                            }
+							
+							String nome = dataIn.optString("name", "");
+							String email = dataIn.optString("email", "");
+							String senha = dataIn.optString("password", "");
+							Integer usuarioId = dataIn.optInt("id");
+							if( usuarioId != Integer.parseInt(JwtUtil.getUserIdFromToken(token))) {
+                            	resposta.put("action", "autoedicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Erro. Id informado é diferente do id do token informado.");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+                             }
+							if(token.isEmpty()) {
+                            	resposta.put("action", "autoedicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Erro. Token não informado");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+                             }
+                             if(nome.isEmpty()) {
+                             	resposta.put("action", "autoedicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Nome não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+                             if(email.isEmpty()) {
+                             	resposta.put("action", "autoedicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Email não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+                             if((usuarioId.toString()).isEmpty()) {
+                             	resposta.put("action", "autoedicao-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Id do usuário não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+
+					        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
+					            resposta.put("action", "autoedicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Usuário não encontrado.");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
+					        if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId) {
+				                resposta.put("action", "autoedicao-usuario");
+				                resposta.put("error", true);
+				                resposta.put("message", "Você só pode alterar sua senha");
+				                out.println(resposta.toString());
+				                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+				            }
+
+					        if (!isValidEmail(email)){
+					            resposta.put("action", "autoedicao-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Email invalido");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
+					        if ((!(cadastros[usuarioId].optString("email", "")).equals(email))&& isEmailAlreadyRegistered(email)) {						        	
+								resposta.put("action", "autoedicao-usuario");
+								resposta.put("error", true);
+								resposta.put("message", "Email informado ja esta sendo utilizado em outro cadastro");
+								out.println(resposta.toString());
+								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+								break;															        	
+					        }						        
+			                cadastros[usuarioId].put("name", nome);
+			                cadastros[usuarioId].put("email", email);
+			                if(!senha.isEmpty()) {	
+			                	if (BCrypt.checkpw(senha, cadastros[usuarioId].optString("password", ""))){
 			                		resposta.put("action", "edicao-usuario");
 						            resposta.put("error", true);
 						            resposta.put("message", "A senha nova deve ser diferente da atual.");
@@ -749,105 +1059,19 @@ public class Servidor {
 						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 					                break;
 				                }
-				                	cadastros[usuarioId].put("password", hashearSenha(senha));
-				                } else if((!senha.isEmpty()) && (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId)){
-				                	resposta.put("action", "edicao-usuario");
-						            resposta.put("error", true);
-						            resposta.put("message", "Não autorizado! Você pode alterar somente sua própria senha.");
-						            out.println(resposta.toString());
-						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-					                break;
-				                }
-				                resposta.put("action", "edicao-usuario");
-				                resposta.put("error", false);
-				                resposta.put("message", "Alterações salvas com sucesso.");
-				                out.println(resposta.toString());
-				                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-				                if (isOnUserToken(token)) {
-						        	deleteUserToken(token);
-						        	addUserToken(token, clientSocket.getInetAddress());
-						        }						        
-				            } 
-						    break;
-						case "autoedicao-usuario":{
-			                JSONObject resposta = new JSONObject();
-
-							if (dataIn == null) {
-					                // Envie uma resposta de erro ao cliente se "novos_dados" estiver ausente
-					                resposta.put("action", "autoedicao-usuario");
-					                resposta.put("error", true);
-					                resposta.put("message", "Chave 'data' esta vazia");
-					                out.println(resposta.toString());
-					                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-					                break;
-					            }
-
-							 String token = dataIn.optString("token", "");
-							 String nome = dataIn.optString("name", "");
-                             String email = dataIn.optString("email", "");
-                             String tipo = dataIn.optString("type", "");
-                             String senha = dataIn.optString("password", "");
-                             int usuarioId = dataIn.optInt("id", -1);
-
-						        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
-						            resposta.put("action", "autoedicao-usuario");
-						            resposta.put("error", true);
-						            resposta.put("message", "Usuário não encontrado.");
-						            out.println(resposta.toString());
-						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-					                break;
-						        }
-						        if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId) {
-					                resposta.put("action", "autoedicao-usuario");
-					                resposta.put("error", true);
-					                resposta.put("message", "Você só pode alterar sua senha");
-					                out.println(resposta.toString());
-					                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-					                break;
-					            }
-
-						        if (!isValidEmail(email)){
-						            resposta.put("action", "autoedicao-usuario");
-						            resposta.put("error", true);
-						            resposta.put("message", "Email invalido");
-						            out.println(resposta.toString());
-						            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-					                break;
-						        }
-						        if ((!(cadastros[usuarioId].optString("email", "")).equals(email))&& isEmailAlreadyRegistered(email)) {						        	
-									resposta.put("action", "autoedicao-usuario");
-									resposta.put("error", true);
-									resposta.put("message", "Email informado ja esta sendo utilizado em outro cadastro");
-									out.println(resposta.toString());
-									log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-									break;															        	
-						        }
-						        
-						                cadastros[usuarioId].put("name", nome);
-						                cadastros[usuarioId].put("email", email);
-						                cadastros[usuarioId].put("type", tipo);
-						                if(!senha.isEmpty()) {	
-						                	if (BCrypt.checkpw(senha, cadastros[usuarioId].optString("password", ""))){
-						                		resposta.put("action", "edicao-usuario");
-									            resposta.put("error", true);
-									            resposta.put("message", "A senha nova deve ser diferente da atual.");
-									            out.println(resposta.toString());
-									            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-								                break;
-							                }
-							                cadastros[usuarioId].put("password", hashearSenha(senha));
-							                }
-						                resposta.put("action", "autoedicao-usuario");
-						                resposta.put("error", false);
-						                resposta.put("message", "Alterações salvas com sucesso.");
-						                out.println(resposta.toString());
-						                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-						                if (isOnUserToken(token)) {
-								        	deleteUserToken(token);
-								        	addUserToken(token, clientSocket.getInetAddress());
-								        }
-						            } 
-						    break;
+				                cadastros[usuarioId].put("password", hashearSenha(senha));
+			                }
+			                resposta.put("action", "autoedicao-usuario");
+			                resposta.put("error", false);
+			                resposta.put("message", "Alterações salvas com sucesso.");
+			                out.println(resposta.toString());
+			                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+			                if (isOnUserToken(token)) {
+					        	deleteUserToken(token);
+					        	addUserToken(token, clientSocket.getInetAddress());
+					        }
+			            } 
+						break;
 						    
 						case "excluir-usuario":{
 							if (dataIn == null) {
@@ -861,9 +1085,44 @@ public class Servidor {
 							}
 
 							 String token = dataIn.optString("token", "");
-                             int usuarioId = dataIn.optInt("user_id", -1);
+							 
+							 if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                             	JSONObject resposta = new JSONObject();
+                                 resposta.put("action", action);
+                                 resposta.put("error", true);
+                                 resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                 out.println(resposta.toString());
+                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                 break;
+                             }
+							 
+                             Integer usuarioId = dataIn.optInt("user_id");
 					         JSONObject resposta = new JSONObject();
-
+					         
+					        if ((usuarioId.toString()).isEmpty()) {
+					        	resposta.put("action", "excluir-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Falha! Id do usuário não informado.");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
+					        if (!JwtUtil.isUserAdmin(token)) {					        	
+					            resposta.put("action", "excluir-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Usuário sem permissão !");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
+					        if (usuarioId == 0) {
+					        	resposta.put("action", "excluir-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Erro! Você não pode excluir o usuário admin@admin.com");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					        }
 					        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
 					            resposta.put("action", "excluir-usuario");
 					            resposta.put("error", true);
@@ -872,23 +1131,15 @@ public class Servidor {
 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 				                break;
 					        }					
-					        if (!JwtUtil.isUserAdmin(token)) {					        	
-					            resposta.put("action", "excluir-usuario");
-					            resposta.put("error", true);
-					            resposta.put("message", "Usuário sem permissão !");
-					            out.println(resposta.toString());
-					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-				                break;
-					        }  
+					        
 			                resposta.put("action", "excluir-usuario");
 			                resposta.put("error", false);
 			                if (usuarioId == Integer.parseInt(JwtUtil.getUserIdFromToken(token)) ){
-			                	resposta.put("message", "Excluiu seu próprio usuário com sucesso! Você sera desconectaco.\nFaça o login novamente");
-					        	deleteUserToken(token);	
+			                	resposta.put("message", "Excluiu seu próprio usuário com sucesso! Você sera desconectado.");
 					        	out.println(resposta.toString());
 				                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 				                cadastros[usuarioId]= null;
-					        	out.close();
+				                setOnlyLogoutAllowed(token);
 					        	break;
 			                }else {
 						    	resposta.put("message", "Usuário excluido com sucesso.");			                
@@ -913,13 +1164,48 @@ public class Servidor {
 							}
 
 							 String token = dataIn.optString("token", "");
+							 
+							 if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                             	JSONObject resposta = new JSONObject();
+                                 resposta.put("action", action);
+                                 resposta.put("error", true);
+                                 resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                 out.println(resposta.toString());
+                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                 break;
+                             }
+							 
                              String email = dataIn.optString("email", "");
                              String senha = dataIn.optString("password", "");
-                             int usuarioId = buscarId(email);
+                             Integer usuarioId = buscarId(email);
 					         JSONObject resposta = new JSONObject();
+					         if(token.isEmpty()) {
+	                        	resposta.put("action", "excluir-proprio-usuario");
+					            resposta.put("error", true);
+					            resposta.put("message", "Erro. Token não informado");
+					            out.println(resposta.toString());
+					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+				                break;
+					         }
+                             if(email.isEmpty()) {
+                             	resposta.put("action", "excluir-proprio-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Email não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
+                             if(senha.isEmpty()) {
+                             	resposta.put("action", "excluir-proprio-usuario");
+ 					            resposta.put("error", true);
+ 					            resposta.put("message", "Erro. Senha do usuário não informado");
+ 					            out.println(resposta.toString());
+ 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 				                break;
+                             }
 
 					        if (usuarioId >= 0 && usuarioId < cadastros.length && cadastros[usuarioId] == null)  {
-					            resposta.put("action", "excluir-usuario");
+					            resposta.put("action", "excluir-proprio-usuario");
 					            resposta.put("error", true);
 					            resposta.put("message", "Falha! Usuário não encontrado.");
 					            out.println(resposta.toString());
@@ -927,7 +1213,7 @@ public class Servidor {
 				                break;
 					        }					
 					        if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) != usuarioId) {					        	
-					            resposta.put("action", "excluir-usuario");
+					            resposta.put("action", "excluir-proprio-usuario");
 					            resposta.put("error", true);
 					            resposta.put("message", "Falha! Email diferente do cadastrado.");
 					            out.println(resposta.toString());
@@ -935,21 +1221,20 @@ public class Servidor {
 				                break;
 					        } 
 					        if (!validarLogin(email, senha)) {
-					        	resposta.put("action", "excluir-usuario");
+					        	resposta.put("action", "excluir-proprio-usuario");
 					            resposta.put("error", true);
 					            resposta.put("message", "Falha! senha incorreta.");
 					            out.println(resposta.toString());
 					            log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 				                break;
 					        }
-			                resposta.put("action", "excluir-usuario");
+			                resposta.put("action", "excluir-proprio-usuario");
 			                resposta.put("error", false);			                
-		                	resposta.put("message", "Excluiu seu próprio usuário com sucesso! Você sera desconectaco.");
-				        	deleteUserToken(token);	
+		                	resposta.put("message", "Excluiu seu próprio usuário com sucesso! Você sera desconectado.");
+				        	setOnlyLogoutAllowed(token);	
 				        	out.println(resposta.toString());
 			                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
 			                cadastros[usuarioId]= null;
-				        	out.close();
 				        	break;
 			                }
                             

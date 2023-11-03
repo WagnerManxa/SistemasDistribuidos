@@ -197,7 +197,7 @@ public class EditarUsuario extends JFrame {
 	                String nome =usuarioData.getString("name");
 	                String email = usuarioData.getString("email");
 	                String tipo = usuarioData.getString("type");
-	                String id = usuarioData.getString("id");
+	                Integer id = usuarioData.getInt("id");
 	                if (nome.isEmpty()) {
 	                    JOptionPane.showMessageDialog(this, "Nome não envaido pelo Servidor");
 	                    return;
@@ -217,7 +217,7 @@ public class EditarUsuario extends JFrame {
 	                nomeFieldEditar.setEnabled(true);
 	                emailFieldEditar.setEnabled(true);
 	                tipoComboBoxEditar.setEnabled(true);
-	                idUsuarioField.setText(id);
+	                idUsuarioField.setText(id.toString());
 	                nomeFieldEditar.setText(nome);
 	                emailFieldEditar.setText(email);
 	                tipoComboBoxEditar.setSelectedItem(tipo);
@@ -265,11 +265,11 @@ public class EditarUsuario extends JFrame {
             if (!error) {
                 JSONObject respostaData = respostaJson.getJSONObject("data");
                 JSONObject usuarioData = respostaData.getJSONObject("user");
-                String usuarioId = usuarioData.getString("id");
+                Integer usuarioId = usuarioData.getInt("id");
                 String nome = usuarioData.getString("name");
                 String email = usuarioData.getString("email");
                 String tipo = usuarioData.getString("type");
-                if (usuarioId.isEmpty()) {
+                if ((usuarioId.toString()).isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Id não envaido pelo Servidor");
                     return;
                 }
@@ -293,7 +293,7 @@ public class EditarUsuario extends JFrame {
                 }else
                 	tipoComboBoxEditar.setEnabled(false);
                 senhaFieldEditar.setEnabled(true);
-                idUsuarioField.setText(usuarioId);
+                idUsuarioField.setText(usuarioId.toString());
                 nomeFieldEditar.setText(nome);
                 emailFieldEditar.setText(email);
                 tipoComboBoxEditar.setSelectedItem(tipo);
@@ -319,7 +319,7 @@ public class EditarUsuario extends JFrame {
 	            return;
 	        }
 	
-	        int idUsuario;
+	        Integer idUsuario;
 	        try {
 	            idUsuario = Integer.parseInt(idUsuarioStr);
 	        } catch (NumberFormatException e) {
