@@ -314,9 +314,9 @@ public class EditarSegmento extends JFrame {
                     return;
                 }
                 
-                String distancia = respostaSegmento.optString("distancia");
-                if (distancia == null || distancia.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+                Integer distancia = respostaSegmento.optInt("distancia");
+                if (distancia == null || distancia.toString().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "'distancia' não enviado pelo Servidor ou nulo");
                     return;
                 }
                 
@@ -387,7 +387,7 @@ public class EditarSegmento extends JFrame {
         		destinoNomeField.setText(nameDestino);
         		destinoObsField.setText(obsDestino);    
         		direcaoField.setText(direcao);
-        		distanciaField.setText(distancia);
+        		distanciaField.setText(distancia.toString());
         		segmentoObsField.setText(obsSegmento);
 
                 JOptionPane.showMessageDialog(this, message);
@@ -414,23 +414,24 @@ public class EditarSegmento extends JFrame {
 		String nomeDestino = destinoNomeField.getText();
 		String obsDestino = destinoObsField.getText();    
 		String direcaoSegmento = direcaoField.getText();
-		String distanciaSegmento = distanciaField.getText();
+		String distanciaSegmentoStr = distanciaField.getText();
 		String obsSegmento = segmentoObsField.getText();
 		
-        if (idSegmentoStr.isEmpty() ||idOrigemStr.isEmpty() || nomeOrigem.isEmpty() || idDestinoStr.isEmpty() || nomeDestino.isEmpty() || direcaoSegmento.isEmpty() || distanciaSegmento.isEmpty()) {
+        if (idSegmentoStr.isEmpty() ||idOrigemStr.isEmpty() || nomeOrigem.isEmpty() || idDestinoStr.isEmpty() || nomeDestino.isEmpty() || direcaoSegmento.isEmpty() || distanciaSegmentoStr.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Por favor, verifique se todos os campos estão preenchidos.");
             return;
         }
-
+        Integer distanciaSegmento;
         Integer idSegmento;
         Integer idOrigem;
         Integer idDestino;
         try {
+        	distanciaSegmento = Integer.parseInt(distanciaSegmentoStr);
             idSegmento = Integer.parseInt(idSegmentoStr);
             idOrigem = Integer.parseInt(idOrigemStr);
             idDestino = Integer.parseInt(idDestinoStr);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Os campos 'id' devem ser um número inteiro.");
+            JOptionPane.showMessageDialog(this, "Os campos 'id' e 'distancia' devem ser um número inteiro.");
             return;
         }
         

@@ -212,21 +212,22 @@ public class CadastroSegmento extends JFrame {
 		String nomeDestino = destinoNomeField.getText();
 		String obsDestino = destinoObsField.getText();    
 		String direcaoSegmento = direcaoField.getText();
-		String distanciaSegmento = distanciaField.getText();
+		String distanciaSegmentoStr = distanciaField.getText();
 		String obsSegmento = segmentoObsField.getText();
 		
-        if (idOrigemStr.isEmpty() || nomeOrigem.isEmpty() || idDestinoStr.isEmpty() || nomeDestino.isEmpty() || direcaoSegmento.isEmpty() || distanciaSegmento.isEmpty()) {
+        if (idOrigemStr.isEmpty() || nomeOrigem.isEmpty() || idDestinoStr.isEmpty() || nomeDestino.isEmpty() || direcaoSegmento.isEmpty() || distanciaSegmentoStr.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Por favor, verifique se todos os campos estão preenchidos.");
             return;
         }
-
+        Integer distanciaSegmento;
         Integer idOrigem;
         Integer idDestino;
         try {
+        	distanciaSegmento = Integer.parseInt(distanciaSegmentoStr);
             idOrigem = Integer.parseInt(idOrigemStr);
             idDestino = Integer.parseInt(idDestinoStr);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Os campos 'id' devem ser um número inteiro.");
+            JOptionPane.showMessageDialog(this, "Os campos 'id' e 'distancia' devem ser um número inteiro.");
             return;
         }
         

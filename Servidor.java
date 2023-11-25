@@ -88,7 +88,7 @@ public class Servidor {
     	segmentos[0].put("id", 0);
     	segmentos[0].put("ponto_origem", pontoOrigem);
     	segmentos[0].put("ponto_destino", pontoDestino);
-    	segmentos[0].put("distancia","50 metros");
+    	segmentos[0].put("distancia",50);
     	segmentos[0].put("direcao","Frente");
     	segmentos[0].put("obs", "Área com paralelepípedos");
     	
@@ -106,7 +106,7 @@ public class Servidor {
     	segmentos[1].put("id", 1);
     	segmentos[1].put("ponto_origem", pontoOrigem2);
     	segmentos[1].put("ponto_destino", pontoDestino2);
-    	segmentos[1].put("distancia","73 metros");
+    	segmentos[1].put("distancia",50);
     	segmentos[1].put("direcao","Zig zag");
     	segmentos[1].put("obs", "Área complexada");
      	
@@ -251,7 +251,7 @@ public class Servidor {
     	
     }
     
-    private boolean isOnUserToken(String token) {
+    private boolean isTokenOnUserToken(String token) {
     	for (int i = 0; i < tamanho; i++) {
             if (userTokens[i] != null && userTokens[i].optString("token","").equals(token)) 
                 return true;       	    
@@ -259,26 +259,41 @@ public class Servidor {
     	return false;
     }
     
+    private boolean isIpOnUserToken(InetAddress ip) {
+    	for (int i = 0; i < tamanho; i++) {
+            if (userTokens[i] != null && userTokens[i].optString("ip","").equals(ip.toString())) 
+                return true;       	    
+    	}
+    	return false;
+    }
+    
     private String buscarTokenPeloIp(InetAddress ip) {
-    	String token = "";
     	for (JSONObject userToken : userTokens) {
             if (userToken != null && (ip.toString()).equals(userToken.optString("ip", ""))) {
-                token = userToken.optString("token", ""); 
-                return token;
+                return userToken.optString("token");
             }
         }
-        return token;
+        return null;
     }
     
     private String buscarTokenPeloId(Integer id) {
-    	String token = "";
+
     	for (JSONObject userToken : userTokens) {
             if (userToken != null && (id.toString()).equals(userToken.optString("usuarioId", ""))) {
-                token = userToken.optString("token", ""); 
-                return token;
+                return userToken.optString("token");
             }
         }
-        return token;
+        return null;
+    }
+
+    private String buscarTokenPeloEmail(String email) {
+
+    	for (JSONObject userToken : userTokens) {
+            if (userToken != null && (email.equals(userToken.optString("email")))) {
+                return userToken.optString("token");
+            }
+        }
+        return null;
     }
     
     private InetAddress buscarIpPeloId(Integer id) throws Throwable {
@@ -313,15 +328,14 @@ public class Servidor {
     	    return false; // Usuário e senha não encontrados
     	}
     
-    private int buscarId(String usuario) {
-    	int id = 0;
+    private Integer buscarId(String email) {
         for (int i = 0; i < cadastros.length; i++) {
             JSONObject cadastro = cadastros[i];
-            if (cadastro != null && usuario.equals(cadastro.optString("email", ""))) {
-                id= i; 
+            if (cadastro != null && email.equals(cadastro.optString("email", ""))) {
+                return i; 
             }
         }
-        return id;
+        return null;
     }
     
     private boolean isAdmin(String usuario) {
@@ -550,7 +564,7 @@ public class Servidor {
 		return null;
 	}
 	
-	private JSONObject cadastrarSegmento(Integer idPontoOrigem, String namePontoOrigem, String obsPontoOrigem, Integer idPontoDestino , String namePontoDestino, String obsPontoDestino, String direcao, String distancia, String obs){
+	private JSONObject cadastrarSegmento(Integer idPontoOrigem, String namePontoOrigem, String obsPontoOrigem, Integer idPontoDestino , String namePontoDestino, String obsPontoDestino, String direcao, Integer distancia, String obs){
 		JSONObject resposta = new JSONObject();
 		String action = "cadastro-segmento";
 		
@@ -561,7 +575,6 @@ public class Servidor {
 		resposta.put("message", "Erro, espaco insuficiente para adicionar segmento");
 		return resposta;
 		}
-		
 		if ( !isNomePontoCadastrado(namePontoOrigem)) {
 			resposta.put("action", action);
 			resposta.put("error", true);			                
@@ -574,7 +587,7 @@ public class Servidor {
 			resposta.put("error", true);			                
 			resposta.put("message", "Erro, nome do ponto de destino não cadastrado, verifique o nome ou cadastre o ponto desejado");
 			return resposta;
-		}	
+		}
 		
 		JSONObject pontoOrigem = new JSONObject();
 		pontoOrigem.put("id", idPontoOrigem);
@@ -605,7 +618,7 @@ public class Servidor {
 		return resposta;
 	}
 
-	private JSONObject editarSegmento(Integer idSegmento,Integer idPontoOrigem, String namePontoOrigem, String obsPontoOrigem, Integer idPontoDestino , String namePontoDestino, String obsPontoDestino, String direcao, String distancia, String obs){
+	private JSONObject editarSegmento(Integer idSegmento,Integer idPontoOrigem, String namePontoOrigem, String obsPontoOrigem, Integer idPontoDestino , String namePontoDestino, String obsPontoDestino, String direcao, Integer distancia, String obs){
 		JSONObject resposta = new JSONObject();
 		String action = "edicao-segmento";
 		
@@ -644,6 +657,7 @@ public class Servidor {
 			pontoDestino.put("obs", obsPontoDestino);
 		}
 		JSONObject novo = new JSONObject();
+		novo.put("id", idSegmento);
 		novo.put("ponto_origem", pontoOrigem);
 		novo.put("ponto_destino", pontoDestino);
 		novo.put("direcao", direcao);
@@ -722,6 +736,28 @@ public class Servidor {
 			}
 		}
 	}
+
+	private JSONObject excluirSegmento(Integer idSegmento) {
+		JSONObject resposta = new JSONObject();
+		String action = "excluir-segmento";
+		if (buscarSegmentoPeloId(idSegmento) == null) {
+			resposta.put("action", action);
+			resposta.put("error", true);			                
+			resposta.put("message", "Falha! Segmento id:"+idSegmento+ " não encontrado");
+			return resposta;
+		}
+		for (int i = 0; i < segmentos.length; i++) {
+			JSONObject segmento = segmentos[i];
+			if(segmento != null && idSegmento == segmento.optInt("id")) {
+				segmentos[i] = null; 
+			}
+		}
+		resposta.put("action", action);
+		resposta.put("error", false);			                
+		resposta.put("message", "Segmento id:"+idSegmento+ " excluido com sucesso");
+		return resposta;
+	}
+	
 	
     private class ServerListener implements Runnable {
         private int portNumber;
@@ -772,6 +808,9 @@ public class Servidor {
                     
                     switch (action) {
                         case "login": {
+                        	System.out.println("inet "+clientSocket.getInetAddress());
+                        	System.out.println("local "+clientSocket.getLocalAddress());
+                        	System.out.println("local socket" +clientSocket.getLocalSocketAddress());
                             if (dataIn != null) {
                                 String email = dataIn.optString("email", "");
                                 String senha = dataIn.optString("password", "");
@@ -795,7 +834,6 @@ public class Servidor {
                                 }
                                 
                                 if (!isValidEmail(email)) {
-                                    // Se o e-mail não for válido, responda ao cliente com um erro
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "login");
                                     resposta.put("error", true);
@@ -803,20 +841,28 @@ public class Servidor {
                                     out.println(resposta.toString());
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
                                     break;
-                                }                                
+                                } 
                                 if (validarLogin(email, senha)) {
-                                	if (!(buscarTokenPeloIp(clientSocket.getInetAddress()).isEmpty())) {
-                                		  JSONObject resposta = new JSONObject();
-                                          resposta.put("action", "login");
-                                          resposta.put("error", true);
-                                          resposta.put("message", "Falha! Ja existe um cliente usando esse IP");
-                                          out.println(resposta.toString());
-                                          log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
-                                          break;
-                                	}
+                                	if (buscarTokenPeloEmail(email) != null) {
+                                        JSONObject resposta = new JSONObject();
+                                        resposta.put("action", "login");
+                                        resposta.put("error", true);
+                                        resposta.put("message", "Erro! Usuario ja conectado, desconecte da outra sessao.");
+                                        out.println(resposta.toString());
+                                        log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                        break;
+                                    }
+                                	if (isIpOnUserToken(clientSocket.getInetAddress())) {
+                                        JSONObject resposta = new JSONObject();
+                                        resposta.put("action", "login");
+                                        resposta.put("error", true);
+                                        resposta.put("message", "Erro! Ja existe um cliente conectado com esse ip, desconecte o outro cliente.");
+                                        out.println(resposta.toString());
+                                        log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                        break;
+                                    }
                                 	String token = JwtUtil.generateToken(String.valueOf(buscarId(email)), isAdmin(email));  
-                                	addUserToken(token, clientSocket.getInetAddress());
-                                	
+                                	addUserToken(token, clientSocket.getInetAddress());                                	
                                 	JSONObject resposta = new JSONObject();
                                 	resposta.put("action","login");
                                 	resposta.put("error","false");
@@ -826,8 +872,6 @@ public class Servidor {
                                 	resposta.put("data", data);
                                     log("Servidor->Enviada para o cliente "+ clientSocket.getInetAddress()+": " + resposta);
                                     out.println(resposta);
-
-                                    break;
                                 } else {
                                     JSONObject resposta = new JSONObject();
                                 	resposta.put("action","login");
@@ -875,7 +919,7 @@ public class Servidor {
                                     return;
                                 }
                                 
-                                if (isOnUserToken(token)) {    
+                                if (isTokenOnUserToken(token)) {    
                                     deleteUserToken(token);
                                     JSONObject resposta = new JSONObject();
                                     resposta.put("action", "logout");
@@ -913,7 +957,7 @@ public class Servidor {
                                 String tipo = dataIn.optString("type", "");
                                 String senha = dataIn.optString("password", "");
                                 
-                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                 	JSONObject resposta = new JSONObject();
                                     resposta.put("action", action);
                                     resposta.put("error", true);
@@ -1123,7 +1167,7 @@ public class Servidor {
                                     log("Servidor->Enviada para o cliente "+ clientSocket.getInetAddress() + resposta);
                                     return;
                                 }
-                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                     resposta.put("action", action);
                                     resposta.put("error", true);
                                     resposta.put("message", "Usuário foi desconectado! Faça o logout.");
@@ -1186,7 +1230,7 @@ public class Servidor {
                                     log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": " + resposta);
                                     break;
                                 }
-                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                     resposta.put("action", action);
                                     resposta.put("error", true);
                                     resposta.put("message", "Usuário foi desconectado! Faça o logout.");
@@ -1249,7 +1293,7 @@ public class Servidor {
                                     break;
                                 }
                                 
-                                if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                                if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                     resposta.put("action", action);
                                     resposta.put("error", true);
                                     resposta.put("message", "Usuário foi desconectado! Faça o logout.");
@@ -1347,7 +1391,7 @@ public class Servidor {
                                  break;
                              }
                              
-                             if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+                             if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                  resposta.put("action", action);
                                  resposta.put("error", true);
                                  resposta.put("message", "Usuário foi desconectado! Faça o logout.");
@@ -1461,7 +1505,7 @@ public class Servidor {
 					           setOnlyLogoutAllowed(token);
 				               break;
 			               }
-			               if ((isOnUserToken(buscarTokenPeloId(usuarioId)) && (!tipo.equals(cadastros[usuarioId].optString("type","")))) || (isOnUserToken(buscarTokenPeloId(usuarioId)) && (!buscarEmailPeloId(usuarioId).equals(email)))) {
+			               if ((isTokenOnUserToken(buscarTokenPeloId(usuarioId)) && (!tipo.equals(cadastros[usuarioId].optString("type","")))) || (isTokenOnUserToken(buscarTokenPeloId(usuarioId)) && (!buscarEmailPeloId(usuarioId).equals(email)))) {
 								setOnlyLogoutAllowed(buscarTokenPeloId(usuarioId));
 							}
 							cadastros[usuarioId].put("name", nome);
@@ -1473,12 +1517,12 @@ public class Servidor {
 			                resposta.put("message", "Alterações salvas com sucesso.");
 			                out.println(resposta.toString());
 			                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-			                if (isOnUserToken(token)) {
+			                if (isTokenOnUserToken(token)) {
 					        	deleteUserToken(token);
 					        	addUserToken(token, clientSocket.getInetAddress());
 					        }
 			                
-			                if(isOnUserToken(buscarTokenPeloId(usuarioId))) {
+			                if(isTokenOnUserToken(buscarTokenPeloId(usuarioId))) {
 			                	InetAddress ip = buscarIpPeloId(usuarioId);
 			                	deleteUserToken(buscarTokenPeloId(usuarioId));
 					        	addUserToken(buscarTokenPeloId(usuarioId), ip);
@@ -1517,7 +1561,7 @@ public class Servidor {
 								
 							}
 							
-							if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+							if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                 resposta.put("action", action);
                                 resposta.put("error", true);
                                 resposta.put("message", "Usuário foi desconectado! Faça o logout.");
@@ -1616,7 +1660,7 @@ public class Servidor {
 			                resposta.put("message", "Alterações salvas com sucesso.");
 			                out.println(resposta.toString());
 			                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
-			                if (isOnUserToken(token)) {
+			                if (isTokenOnUserToken(token)) {
 					        	deleteUserToken(token);
 					        	addUserToken(token, clientSocket.getInetAddress());
 					        }
@@ -1656,7 +1700,7 @@ public class Servidor {
 									
 								}
 							 
-							 if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+							 if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                                  resposta.put("action", action);
                                  resposta.put("error", true);
                                  resposta.put("message", "Usuário foi desconectado! Faça o logout.");
@@ -1754,7 +1798,7 @@ public class Servidor {
 								}
 							 
 							 
-							 if(isOnUserToken(token) && isOnlyLogoutAllowed(token)){
+							 if(isTokenOnUserToken(token) && isOnlyLogoutAllowed(token)){
                              	JSONObject resposta = new JSONObject();
                                  resposta.put("action", action);
                                  resposta.put("error", true);
@@ -1856,6 +1900,14 @@ public class Servidor {
   								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
   								break;
                               }
+                             if (isNomePontoCadastrado(name)) {
+                            	resposta.put("action", action);
+   								resposta.put("error", true);
+   								resposta.put("message", "Erro! Ja existe um ponto com esse nome");
+   								out.println(resposta.toString());
+   								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+   								break;
+                             }
                              if (obs == null || obs.isEmpty()) {
   								resposta.put("action", action);
   								resposta.put("error", true);
@@ -2107,8 +2159,8 @@ public class Servidor {
    								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
    								break;
                              }
-                             String idPontoOrigem = pontoOrigem.optString("id", "");
-                             if (idPontoOrigem == null || idPontoOrigem.isEmpty()) {
+                             String idPontoOrigemStr = pontoOrigem.optString("id", "");
+                             if (idPontoOrigemStr == null || idPontoOrigemStr.isEmpty()) {
   								resposta.put("action", action);
   								resposta.put("error", true);
   								resposta.put("message", "Chave 'id' do ponto de origem esta vazia ou nula ");
@@ -2125,7 +2177,7 @@ public class Servidor {
   								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
   								break;
                               }
-                             String obsPontoOrigem = dataIn.optString("obs", "");
+                             String obsPontoOrigem = pontoOrigem.optString("obs", "");
                              if (obsPontoOrigem == null || obsPontoOrigem.isEmpty()) {
   								System.out.println("Chave 'obs' do ponto de origem esta vazia ou nula ");
                              }
@@ -2139,8 +2191,8 @@ public class Servidor {
    								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
    								break;
                              }
-                             String idPontoDestino = pontoDestino.optString("id", "");
-                             if (idPontoDestino == null || idPontoDestino.isEmpty()) {
+                             String idPontoDestinoStr = pontoDestino.optString("id", "");
+                             if (idPontoDestinoStr == null || idPontoDestinoStr.isEmpty()) {
   								resposta.put("action", action);
   								resposta.put("error", true);
   								resposta.put("message", "Chave 'id' do ponto de destino esta vazia ou nula ");
@@ -2157,7 +2209,7 @@ public class Servidor {
   								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
   								break;
                               }
-                             String obsPontoDestino = dataIn.optString("obs", "");
+                             String obsPontoDestino = pontoDestino.optString("obs", "");
                              if (obsPontoDestino == null || obsPontoDestino.isEmpty()) {
   								System.out.println("Chave 'obs' do ponto de destino esta vazia ou nula ");
                              }
@@ -2173,8 +2225,8 @@ public class Servidor {
     								break;    
                              }
                              
-                             String distancia = segmento.optString("distancia");
-                             if (distancia == null || distancia.isEmpty()) {
+                             Integer distancia = segmento.optInt("distancia");
+                             if (distancia == null || distancia.toString().isEmpty()) {
    								resposta.put("action", action);
    								resposta.put("error", true);
    								resposta.put("message", "Chave 'distancia' esta vazia ou nula ");
@@ -2187,16 +2239,31 @@ public class Servidor {
                              if (obsSegmento == null || obsSegmento.isEmpty()) {
   								System.out.println("Chave 'obs' do segmento esta vazia ou nula ");
                              }
-                             String idSegmento = segmento.optString("id");
-                             if (idSegmento == null || idSegmento.isEmpty()) {
+                             String idSegmentoStr = dataIn.optString("segmento_id");
+                             if (idSegmentoStr == null || idSegmentoStr.isEmpty()) {
    								resposta.put("action", action);
    								resposta.put("error", true);
-   								resposta.put("message", "Chave 'id' esta vazia ou nula ");
+   								resposta.put("message", "Chave 'segmento_id' esta vazia ou nula ");
    								out.println(resposta.toString());
    								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
    								break;
                                }
-                             resposta = editarSegmento(Integer.parseInt(idSegmento),Integer.parseInt(idPontoOrigem), namePontoOrigem, obsPontoOrigem, Integer.parseInt(idPontoDestino), namePontoDestino, obsPontoDestino, direcao, distancia, obsSegmento);
+                             Integer idSegmento;
+                             Integer idPontoOrigem;
+                             Integer idPontoDestino;
+                             try {
+                             	idSegmento = Integer.parseInt(idSegmentoStr);
+                             	idPontoOrigem = Integer.parseInt(idPontoOrigemStr);
+                             	idPontoDestino = Integer.parseInt(idPontoDestinoStr);
+                             } catch (NumberFormatException e) {
+                            	resposta.put("action", action);
+    							resposta.put("error", true);
+    							resposta.put("message", "Chave 'segmento_id' e 'id' deve ser um numero inteiro");
+    							out.println(resposta.toString());
+    							log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+    							break;
+                             }
+                             resposta = editarSegmento(idSegmento,idPontoOrigem, namePontoOrigem, obsPontoOrigem, idPontoDestino, namePontoDestino, obsPontoDestino, direcao, distancia, obsSegmento);
                              out.println(resposta.toString());
  			                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+ resposta);
  			                 break;
@@ -2364,7 +2431,7 @@ public class Servidor {
   								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
   								break;
                               }
-                             String obsPontoOrigem = dataIn.optString("obs", "");
+                             String obsPontoOrigem = pontoOrigem.optString("obs", "");
                              if (obsPontoOrigem == null || obsPontoOrigem.isEmpty()) {
   								System.out.println("Chave 'obs' do ponto de origem esta vazia ou nula ");
                              }
@@ -2396,7 +2463,7 @@ public class Servidor {
   								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
   								break;
                               }
-                             String obsPontoDestino = dataIn.optString("obs", "");
+                             String obsPontoDestino = pontoDestino.optString("obs", "");
                              if (obsPontoDestino == null || obsPontoDestino.isEmpty()) {
   								System.out.println("Chave 'obs' do ponto de destino esta vazia ou nula ");
                              }
@@ -2412,8 +2479,8 @@ public class Servidor {
     								break;    
                              }
                              
-                             String distancia = segmento.optString("distancia");
-                             if (distancia == null || distancia.isEmpty()) {
+                             Integer distancia = segmento.optInt("distancia");
+                             if (distancia == null || distancia.toString().isEmpty()) {
    								resposta.put("action", action);
    								resposta.put("error", true);
    								resposta.put("message", "Chave 'distancia' esta vazia ou nula ");
@@ -2432,7 +2499,69 @@ public class Servidor {
  			                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+ resposta);
  			                 break;
 						}
-                            
+						
+						case "excluir-segmento":{
+							JSONObject resposta = new JSONObject();
+							if(dataIn == null || dataIn.isEmpty()){
+                                resposta.put("action", action);
+                                resposta.put("error", true);
+                                resposta.put("message", "Falha! 'data' vazio ou nulo.");
+                                out.println(resposta.toString());
+                                log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                break;
+                           }
+                             String token = dataIn.optString("token","");
+                             if (token == null || token.isEmpty()) {
+ 								resposta.put("action", action);
+ 								resposta.put("error", true);
+ 								resposta.put("message", "Chave 'token' esta vazia ou nula ");
+ 								out.println(resposta.toString());
+ 								log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+resposta);
+ 								break;
+                             }
+                             if(isOnlyLogoutAllowed(token)){
+                                  resposta.put("action", action);
+                                  resposta.put("error", true);
+                                  resposta.put("message", "Usuário foi desconectado! Faça o logout.");
+                                  out.println(resposta.toString());
+                                  log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                  break;
+                              }
+                             if (!JwtUtil.isUserAdmin(token)) {
+                            	 resposta.put("action", action);
+                                 resposta.put("error", true);
+                                 resposta.put("message", "Falha!Usuário sem permissao.");
+                                 out.println(resposta.toString());
+                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                 break;
+                             }
+                             String idSegmentoStr = dataIn.optString("segmento_id");
+                             if(idSegmentoStr == null || idSegmentoStr.isEmpty()) {
+                            	 resposta.put("action", action);
+                                 resposta.put("error", true);
+                                 resposta.put("message", "Chave 'segmento_id' esta vazia ou nula ");
+                                 out.println(resposta.toString());
+                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                 break;
+                             }
+                             Integer idSegmento;
+                             try {
+                            	 idSegmento = Integer.parseInt(idSegmentoStr);
+                             }
+                             catch (NumberFormatException e) {
+                            	 resposta.put("action", action);
+                                 resposta.put("error", true);
+                                 resposta.put("message", "Erro! A chave 'segmento_id' deve ser um numero inteiro.");
+                                 out.println(resposta.toString());
+                                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress() + ": " + resposta);
+                                 break;
+							}
+                             resposta = excluirSegmento(idSegmento);
+                             out.println(resposta.toString());
+ 			                 log("Servidor->Enviada para o cliente " + clientSocket.getInetAddress()+ ": "+ resposta);
+ 			                 break;
+                             
+						}
 						default:
 							
 							break;

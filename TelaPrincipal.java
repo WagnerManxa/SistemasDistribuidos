@@ -119,7 +119,7 @@ public class TelaPrincipal extends JFrame {
         JButton excluirSegmentoButton = new JButton("Excluir");
         excluirSegmentoButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                //excluirSegmento();
+                excluirSegmento();
             }
         });
                 
@@ -290,7 +290,12 @@ public class TelaPrincipal extends JFrame {
     	listarSegmento.setVisible(true);
 
     }
-    
+    private void excluirSegmento() {
+    	ExcluirSegmento excluirSegmento = new ExcluirSegmento(socket,this, this.token);
+    	excluirSegmento.atualizarToken(this.token);
+    	excluirSegmento.setVisible(true);
+
+    }
     
     private void voltarTelaLogin() {
     	try {

@@ -109,7 +109,7 @@ public class InformacaoSegmento extends JFrame {
 							JSONObject segmento = segmentos.getJSONObject(i);
 							Integer segmentoId = segmento.getInt("id");
 							String direcao = segmento.getString("direcao");
-							String distancia = segmento.getString("distancia");
+							Integer distancia = segmento.getInt("distancia");
 							String obs = segmento.getString("obs");
 							JSONObject pontoOrigem = segmento.getJSONObject("ponto_origem");
 							Integer pontoOrigemId = pontoOrigem.getInt("id");
@@ -135,7 +135,7 @@ public class InformacaoSegmento extends JFrame {
 							lista.append("Distância: ").append(distancia).append("\n");
 							lista.append("Obs do segmento: ").append(obs).append("\n");
 							lista.append("\n");
-							lista.append("_____________________________________________________________");
+							lista.append("____________________________________________________");
 							lista.append("\n");
 		                }
 			                }
