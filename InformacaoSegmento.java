@@ -96,14 +96,15 @@ public class InformacaoSegmento extends JFrame {
 			                JOptionPane.showMessageDialog(this, "'data' não enviado pelo Servidor ou nulo");
 			            }
 		                
+		                StringBuilder lista = new StringBuilder();
 		                JSONArray segmentos = dataJson.getJSONArray("segmentos");
 		                if (segmentos == null || segmentos.isEmpty()) {
-			                JOptionPane.showMessageDialog(this, "'segmentos' não enviado pelo Servidor ou nulo");
+		                	lista.append("Nenhum segmento enviado pelo Servidor");
+		                	System.out.println("Nenhum segmento enviado pelo Servidor ou recebido campo 'segmentos' nulo");
 			            }
 		                
-		                StringBuilder lista = new StringBuilder();
-		                lista.append("Segmentos cadastrados:\n\n");
-		
+		                else {
+		                lista.append("----------------------SEGMENTOS----------------------\n\n");
 		                for (int i = 0; i < segmentos.length(); i++) {
 							JSONObject segmento = segmentos.getJSONObject(i);
 							Integer segmentoId = segmento.getInt("id");
@@ -117,21 +118,26 @@ public class InformacaoSegmento extends JFrame {
 							JSONObject pontoDestino = segmento.getJSONObject("ponto_destino");
 							Integer pontoDestinoId = pontoDestino.getInt("id");
 							String pontoDestinoNome = pontoDestino.getString("name");
-							String pontoDestinoObs = pontoDestino.getString("obs");              
-			                
+							String pontoDestinoObs = pontoDestino.getString("obs");              						
 							lista.append("ID Segmento: ").append(segmentoId).append("\n");
+							lista.append("-----\n");
 							lista.append("Ponto de Origem ").append("\n");
 							lista.append("ID: ").append(pontoOrigemId).append("\n");
 							lista.append("Nome: ").append(pontoOrigemNome).append("\n");
 							lista.append("Obs: ").append(pontoOrigemObs).append("\n");
+							lista.append("-----\n");
 							lista.append("Ponto de Destino ").append("\n");
 							lista.append("ID: ").append(pontoDestinoId).append("\n");
 							lista.append("Nome: ").append(pontoDestinoNome).append("\n");
 							lista.append("Obs: ").append(pontoDestinoObs).append("\n");
+							lista.append("-----\n");
 							lista.append("Direção: ").append(direcao).append("\n");
 							lista.append("Distância: ").append(distancia).append("\n");
 							lista.append("Obs do segmento: ").append(obs).append("\n");
-		                    
+							lista.append("\n");
+							lista.append("_____________________________________________________________");
+							lista.append("\n");
+		                }
 			                }
 		                listaSegmentosTextArea.setText(lista.toString());
 		            	JOptionPane.showMessageDialog(this, message);
