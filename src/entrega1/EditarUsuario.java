@@ -57,6 +57,7 @@ public class EditarUsuario extends JFrame {
         
         JLabel senhaLabelEditar = new JLabel("Senha:");
         senhaFieldEditar = new JPasswordField(20);
+        
 
         JButton buscarButton = new JButton("Buscar Usuário");
         buscarButton.addActionListener(new ActionListener() {
@@ -141,6 +142,7 @@ public class EditarUsuario extends JFrame {
 
         pack();
         setLocationRelativeTo(null);
+        limparCampos();
     }
     private void limparCampos() {
     	nomeFieldEditar.setText("");
@@ -183,13 +185,23 @@ public class EditarUsuario extends JFrame {
 	
 	            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 	            String resposta = in.readLine();
-	            senhaFieldEditar.setEnabled(false);
 	            System.out.println("EditarUsuario<- Recebida do servidor: "+resposta);
 	            
 	            JSONObject respostaJson = new JSONObject(resposta);
 	            String action = respostaJson.optString("action");
-	           	boolean error = respostaJson.optBoolean("error");
+	           	Boolean error = respostaJson.optBoolean("error");
 	            String message = respostaJson.optString("message");
+	            
+	            if (error == null || error.toString().isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+	                return; 
+	            }
+	            if (action == null || action.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+	            }
+	            if (message == null || message.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+	            }
 	 
 	            if (!error) {
 	            	JSONObject respostaData = respostaJson.getJSONObject("data");
@@ -198,21 +210,23 @@ public class EditarUsuario extends JFrame {
 	                String email = usuarioData.getString("email");
 	                String tipo = usuarioData.getString("type");
 	                Integer id = usuarioData.getInt("id");
-	                if (nome.isEmpty()) {
-	                    JOptionPane.showMessageDialog(this, "Nome não envaido pelo Servidor");
+	                if (nome == null || nome.isEmpty()) {
+	                    JOptionPane.showMessageDialog(this, "'name' não enviado pelo Servidor");
 	                    return;
 	                }
-	                if (email.isEmpty()) {
-	                    JOptionPane.showMessageDialog(this, "E-mail não envaido pelo Servidor");
+	                if (email == null || email.isEmpty()) {
+	                    JOptionPane.showMessageDialog(this, "'email' não enviado pelo Servidor");
 	                    return;
 	                }
-	                if (tipo.isEmpty()) {
-	                    JOptionPane.showMessageDialog(this, "Tipo de usuario não envaido pelo Servidor");
+	                if (tipo == null || tipo.isEmpty()) {
+	                    JOptionPane.showMessageDialog(this, "'type' não enviado pelo Servidor");
 	                    return;
 	                }
-	                if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == idUsuario) {
+	                //vaerifica se o usuario logado é o mesmo que está sendo alterado
+	               //if (Integer.parseInt(JwtUtil.getUserIdFromToken(token)) == idUsuario) {
 	                	senhaFieldEditar.setEnabled(true);
-	                }
+	                //}
+	                
 	                idUsuarioField.setEnabled(false);
 	                nomeFieldEditar.setEnabled(true);
 	                emailFieldEditar.setEnabled(true);
@@ -259,8 +273,18 @@ public class EditarUsuario extends JFrame {
             
             JSONObject respostaJson = new JSONObject(resposta);
             String action = respostaJson.optString("action");
-           	boolean error = respostaJson.optBoolean("error");
+           	Boolean error = respostaJson.optBoolean("error");
             String message = respostaJson.optString("message");
+            if (error == null || error.toString().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+                return; 
+            }
+            if (action == null || action.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+            }
+            if (message == null || message.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+            }
  
             if (!error) {
                 JSONObject respostaData = respostaJson.getJSONObject("data");
@@ -269,20 +293,22 @@ public class EditarUsuario extends JFrame {
                 String nome = usuarioData.getString("name");
                 String email = usuarioData.getString("email");
                 String tipo = usuarioData.getString("type");
-                if ((usuarioId.toString()).isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Id não envaido pelo Servidor");
+                
+                
+                if (usuarioId == null || usuarioId.toString().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "'id' não enviado pelo Servidor ou nulo");
                     return;
                 }
-                if (nome.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Nome não envaido pelo Servidor");
+                if (nome == null||nome.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "'name' não enviado pelo Servidor ou nulo");
                     return;
                 }
-                if (email.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "E-mail não envaido pelo Servidor");
+                if (email == null ||email.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "'email' não enviado pelo Servidor ou nulo");
                     return;
                 }
-                if (tipo.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Tipo de usuario não envaido pelo Servidor");
+                if (tipo == null || tipo.isEmpty() ) {
+                    JOptionPane.showMessageDialog(this, "'type' não enviado pelo Servidor ou nulo");
                     return;
                 }
                 idUsuarioField.setEnabled(false);
@@ -292,7 +318,6 @@ public class EditarUsuario extends JFrame {
                 	tipoComboBoxEditar.setEnabled(true);	
                 }else
                 	tipoComboBoxEditar.setEnabled(false);
-                senhaFieldEditar.setEnabled(true);
                 idUsuarioField.setText(usuarioId.toString());
                 nomeFieldEditar.setText(nome);
                 emailFieldEditar.setText(email);
@@ -330,9 +355,7 @@ public class EditarUsuario extends JFrame {
 	        String nome = nomeFieldEditar.getText();
 	        String email = emailFieldEditar.getText();
 	        String tipo = (String) tipoComboBoxEditar.getSelectedItem();
-	        String senha = String.valueOf(senhaFieldEditar.getPassword());
-	
-	
+	        String senha = String.valueOf(senhaFieldEditar.getPassword());		
 	        JSONObject mensagem = new JSONObject();
 	        JSONObject data = new JSONObject();
 	        if (JwtUtil.isUserAdmin(token)) {
@@ -346,11 +369,14 @@ public class EditarUsuario extends JFrame {
 	        data.put("token", token);
 	        data.put("name", nome);
 	        data.put("email", email);
-	        data.put("type", tipo);
+	        if (JwtUtil.isUserAdmin(token)) {	        	
+	        	data.put("type", tipo);
+	        }	        
 	        if (!senha.isEmpty()) {
 	        	data.put("password", DigestUtils.md5Hex(senha).toUpperCase());
 	        }else {
-	        	data.put("password", "");
+	        	senha = null;
+	        	data.put("password", senha);
 	        }
 	        mensagem.put("data", data);
 	        
@@ -365,8 +391,18 @@ public class EditarUsuario extends JFrame {
 	            
 	            JSONObject respostaJson = new JSONObject(resposta);
 	            String action = respostaJson.optString("action");
-	           	boolean error = respostaJson.optBoolean("error");
+	           	Boolean error = respostaJson.optBoolean("error");
 	            String message = respostaJson.optString("message");
+	            if (error == null || error.toString().isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+	                return; 
+	            }
+	            if (action == null|| action.isEmpty() ) {
+	                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+	            }
+	            if (message == null || message.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+	            }
 	            if(error) {
 	            	JOptionPane.showMessageDialog(this, message);
 	            	return;

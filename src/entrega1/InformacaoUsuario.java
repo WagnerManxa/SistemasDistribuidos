@@ -77,8 +77,19 @@ public class InformacaoUsuario extends JFrame {
 		            System.out.println("ListarUsuario<-Recebida do servidor: "+ resposta);
 		            JSONObject respostaJSON = new JSONObject(resposta);
 		            String action = respostaJSON.optString("action");
-	               	boolean error = respostaJSON.optBoolean("error");
+		            
+	               	Boolean error = respostaJSON.optBoolean("error");
 	                String message = respostaJSON.optString("message");
+		            if (error == null || error.toString().isEmpty()) {
+		                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+		                return; 
+		            }
+		            if (action == null || action.isEmpty()) {
+		                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+		            }
+		            if (message == null || message.isEmpty()) {
+		                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+		            }
 	
 		
 		            if (!error) {	            	           
@@ -136,8 +147,18 @@ public class InformacaoUsuario extends JFrame {
             System.out.println("InfoUsuario<-Recebida do servidor: "+ resposta);
             JSONObject respostaJSON = new JSONObject(resposta);
             String action = respostaJSON.optString("action");
-           	boolean error = respostaJSON.optBoolean("error");
+           	Boolean error = respostaJSON.optBoolean("error");
             String message = respostaJSON.optString("message");
+            if (error == null || error.toString().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+                return; 
+            }
+            if (action == null || action.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+            }
+            if (message == null || message.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+            }
 
             if (!error) {
             	           
@@ -146,10 +167,27 @@ public class InformacaoUsuario extends JFrame {
                 StringBuilder lista = new StringBuilder();
                 lista.append("Meus dados de cadastrado:\n\n");
 
-                int usuarioId = usuario.getInt("id");
+                Integer usuarioId = usuario.getInt("id");
                 String nome = usuario.getString("name");
                 String email = usuario.getString("email");
                 String tipo = usuario.getString("type");
+                
+	            if (usuarioId == null || usuarioId.toString().isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'id' não enviado pelo Servidor ou nulo");
+	                return; 
+	            }
+	            if (nome == null || nome.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'name' não enviado pelo Servidor ou nulo");
+	                return;
+	            }
+	            if (email == null || email.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'email' não enviado pelo Servidor ou nulo");
+	                return;
+	            }
+	            if (tipo == null || tipo.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "'type' não enviado pelo Servidor ou nulo");
+	                return;
+	            }
 
                 lista.append("ID: ").append(usuarioId).append("\n");
                 lista.append("Nome: ").append(nome).append("\n");

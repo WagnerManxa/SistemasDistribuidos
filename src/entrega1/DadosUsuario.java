@@ -27,7 +27,6 @@ public class DadosUsuario {
         this.setUsername(username);
     }
 
-    // Adicione getters e setters para todos os campos
     public String getNome() {
         return nome;
     }

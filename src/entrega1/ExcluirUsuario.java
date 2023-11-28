@@ -166,8 +166,19 @@ public class ExcluirUsuario extends JFrame {
             System.out.println("InfoUsuario<-Recebida do servidor: "+ resposta);
             JSONObject respostaJSON = new JSONObject(resposta);
             String action = respostaJSON.optString("action");
-           	boolean error = respostaJSON.optBoolean("error");
+           	Boolean error = respostaJSON.optBoolean("error");
             String message = respostaJSON.optString("message");
+            
+            if (error == null || error.toString().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+                return; 
+            }
+            if (action == null || action.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+            }
+            if (message == null || message.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+            }
 
             if (!error) {            	       
                 JOptionPane.showMessageDialog(this, message);

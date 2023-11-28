@@ -121,7 +121,6 @@ public class AutoCadastro extends JFrame {
         mensagem.put("data", data);
 
         try {
-            // Abrir o socket
             Socket socket = new Socket(serverIp, Integer.parseInt(serverPortText));
 
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -139,8 +138,19 @@ public class AutoCadastro extends JFrame {
             	System.out.println("AutoCadastro<-Recebida do servidor: "+resposta);
                 JSONObject respostaJSON = new JSONObject(resposta);
                 String action = respostaJSON.optString("action", "");
-                boolean error = respostaJSON.optBoolean("error");
+                Boolean error = respostaJSON.optBoolean("error");
                 String message = respostaJSON.optString("message", "");
+                if (error == null || error.toString().isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Campo 'error' não enviado pelo Servidor ou nulo");
+                    socket.close();
+                    return; 
+                }
+                if (action == null || action.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Campo 'action' não enviado pelo Servidor ou nulo");
+                }
+                if (message == null || message.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Campo 'message' não enviado pelo Servidor ou nulo");
+                }
                 
 
                 if (!error) {

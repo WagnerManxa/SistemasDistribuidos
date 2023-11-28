@@ -8,25 +8,22 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 
-public class CadastroUsuario extends JFrame {
+
+public class CadastroPonto extends JFrame {
     private JTextField nomeField;
-    private JTextField emailField;
-    private JPasswordField senhaField;
+    private JTextField obsField;
     private Socket socket;
-    private JComboBox<String> tipoComboBox;
     private TelaPrincipal telaPrincipal;
     private String token;
 
-    public CadastroUsuario(Socket socket, TelaPrincipal telaPrincipal, String token) {
+    public CadastroPonto(Socket socket, TelaPrincipal telaPrincipal, String token) {
         this.socket = socket;
         this.telaPrincipal = telaPrincipal;
         this.token = token;
 
-        setTitle("Cadastro de Usuário");
+        setTitle("Cadastro de Ponto");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
 
@@ -38,46 +35,27 @@ public class CadastroUsuario extends JFrame {
         JLabel nomeLabel = new JLabel("Nome:");
         nomeField = new JTextField(20);
 
-        JLabel emailLabel = new JLabel("Email:");
-        emailField = new JTextField(20);
-        
-        JLabel tipoLabel = new JLabel("Tipo de Usuário:");
-        String[] tipos = {"admin", "user"};
-        tipoComboBox = new JComboBox<>(tipos);
-        tipoComboBox.setSelectedIndex(1);
+        JLabel obsLabel = new JLabel("Observacoes:");
+        obsField = new JTextField(20);
 
-        JLabel senhaLabel = new JLabel("Senha:");
-        senhaField = new JPasswordField(20);
 
         constraints.gridy = 0;
         panel.add(nomeLabel, constraints);
 
         constraints.gridy = 1;
-        panel.add(emailLabel, constraints);
-
-        constraints.gridy = 2;
-        panel.add(tipoLabel, constraints);
-
-        constraints.gridy = 3;
-        panel.add(senhaLabel, constraints);
+        panel.add(obsLabel, constraints);
 
         constraints.gridx = 1;
         constraints.gridy = 0;
         panel.add(nomeField, constraints);
 
         constraints.gridy = 1;
-        panel.add(emailField, constraints);
-
-        constraints.gridy = 2;
-        panel.add(tipoComboBox, constraints);
-
-        constraints.gridy = 3;
-        panel.add(senhaField, constraints);
+        panel.add(obsField, constraints);
 
         JButton cadastrarButton = new JButton("Cadastrar");
         cadastrarButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                cadastrarUsuario();
+                cadastrarPonto();
             }
         });
 
@@ -98,44 +76,37 @@ public class CadastroUsuario extends JFrame {
         setLocationRelativeTo(null);
     }
 
-    private void cadastrarUsuario() {
-        String nome = nomeField.getText();
-        String email = emailField.getText();
-        String tipo = (String) tipoComboBox.getSelectedItem();
-        String senha = new String(senhaField.getPassword());
+    private void cadastrarPonto() {
+        String name = nomeField.getText();
+        String obs = obsField.getText();
 
-        if (nome.isEmpty() || email.isEmpty() || senha.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Todos os campos são obrigatórios.");
+
+        if (name.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "O campo nome é obrigatório.");
             return;
         }
-
-        if (senha.length() < 6) {
-            JOptionPane.showMessageDialog(this, "A senha deve ter no minimo 6 caracteres.");
-            return;
+        if (obs.isEmpty() || obs == null) {
+        	obs =null;
         }
-
-        String senhaMD5 = hashMD5(senha).toUpperCase();
 
         JSONObject mensagem = new JSONObject();
-        mensagem.put("action", "cadastro-usuario");
+        mensagem.put("action", "cadastro-ponto");
 
         JSONObject data = new JSONObject();
-        data.put("name", nome);
+        data.put("name", name);
         data.put("token", token);
-        data.put("email", email);
-        data.put("type", tipo);
-        data.put("password", senhaMD5);
+        data.put("obs", obs);
         mensagem.put("data", data);
 
         try {
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);            
             out.println(mensagem.toString());
-            System.out.println("CadastroUsuario-> Enviado para o servidor: "+mensagem);
+            System.out.println("TelaCadastroPonto-> Enviado para o servidor: "+mensagem);
 
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String resposta = in.readLine();
             if (resposta != null) {
-	            System.out.println("TelaCadastro<-Recebida do servidor: "+ resposta);
+	            System.out.println("TelaCadastroPonto<-Recebida do servidor: "+ resposta);
 	            JSONObject respostaJSON = new JSONObject(resposta);           
                 String action = respostaJSON.optString("action");
                	Boolean error = respostaJSON.optBoolean("error");
@@ -176,20 +147,5 @@ public class CadastroUsuario extends JFrame {
         this.token = novoToken;
     }  
 
-    private String hashMD5(String senha) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] senhaBytes = senha.getBytes();
-            byte[] hashBytes = md.digest(senhaBytes);
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hashBytes) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 }
 

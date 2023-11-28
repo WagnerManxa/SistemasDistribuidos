@@ -117,15 +117,12 @@ public class ClienteLogin extends JFrame {
             mensagem.put("data", data);
 
             if (socket != null && !socket.isClosed()) {
-                // Se o socket estiver aberto, feche-o antes de criar um novo
                 try {
                     socket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-
-            // Criar um novo socket
             socket = new Socket(serverIp, serverPort);
 
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -134,21 +131,42 @@ public class ClienteLogin extends JFrame {
 
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             String resposta = in.readLine();
-                if (resposta == null) {
+                if (resposta == null || resposta.isEmpty()) {
                 	System.out.println("TelaLogin<-Recebida do servidor: null");
                 	return;
                 }else {
                 
                 System.out.println("TelaLogin<-Recebida do servidor: "+resposta);
-                //aviso resposta recebida do servidor             
                 JSONObject respostaJSON = new JSONObject(resposta);
                 String action = respostaJSON.optString("action", "");
-                boolean error = respostaJSON.optBoolean("error");
+                Boolean error = respostaJSON.optBoolean("error");
                 String message = respostaJSON.optString("message", "");
+                if (error == null || error.toString().isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "Campo 'error' não enviado pelo Servidor ou nulo");
+	                socket.close();
+	                return; 
+	            }
+	            if (action == null ||action.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "Campo 'action' não enviado pelo Servidor ou nulo");
+	                socket.close();
+	                return;
+	            }
+	            if (message == null || message.isEmpty()) {
+	                JOptionPane.showMessageDialog(this, "Campo 'message' não enviado pelo Servidor ou nulo");
+	            }
                 
                 if(!error) {                
                 JSONObject dataResposta = respostaJSON.optJSONObject("data");
                 this.token = dataResposta.optString("token","");        
+                if(!JwtUtil.isValidToken(token)) {
+                	JOptionPane.showMessageDialog(this, "O 'token' enviado pelo Servidor não é válido");
+                	socket.close();
+                	return;
+                }
+                if(token == null||token.isEmpty()) {
+                	JOptionPane.showMessageDialog(this, "O token foi enviado pelo Servidor ou é nulo");
+                	return;
+                }
                 
                                 	
                 switch (action) {

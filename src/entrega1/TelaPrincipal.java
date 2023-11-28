@@ -28,49 +28,182 @@ public class TelaPrincipal extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(400, 300);
 
-        JPanel panel = new JPanel(new FlowLayout());
-       
-        JButton cadastrarUsuarioButton = new JButton("Cadastrar Usuário");
+        
+        JLabel usuariosLabel = new JLabel("Usuários");
+        
+        JButton cadastrarUsuarioButton = new JButton("Cadastrar");
         cadastrarUsuarioButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 abrirCadastroUsuario();
             }
         });
-        panel.add(cadastrarUsuarioButton);
-
-        JButton informacaoUsuarioButton = new JButton("Informações de Usuários");
+        
+        JButton informacaoUsuarioButton = new JButton("Informações");
         informacaoUsuarioButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 listarUsuarios();
             }
         });
-        panel.add(informacaoUsuarioButton);
-
-        JButton editarUsuarioButton = new JButton("Editar Usuário");
+               
+        JButton editarUsuarioButton = new JButton("Editar");
         editarUsuarioButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 abrirEditarUsuario();
             }
         });
-        panel.add(editarUsuarioButton);
-
-        JButton excluirUsuarioButton = new JButton("Excluir Usuário");
+        
+        JButton excluirUsuarioButton = new JButton("Excluir");
         excluirUsuarioButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 excluirUsuario();
             }
         });
-        panel.add(excluirUsuarioButton);
+ 
+        /////////////////////////////////////////////////////////////////////
+        
+        JLabel pontosLabel = new JLabel("Pontos");
+        
+        JButton cadastrarPontoButton = new JButton("Cadastrar");
+        cadastrarPontoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	abrirCadastroPonto();
+            }
+        });
 
+        JButton informacaoPontoButton = new JButton("Informações");
+        informacaoPontoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                listarPontos();
+            }
+        });
+               
+        JButton editarPontoButton = new JButton("Editar");
+        editarPontoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	abrirEditarPonto();
+            }
+        });
+                      
+        JButton excluirPontoButton = new JButton("Excluir");
+        excluirPontoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                excluirPonto();
+            }
+        });
+        
+        ////////////////////////////////////////////////////////////////
+        
+        JLabel segmentosLabel = new JLabel("Segmentos");
+        
+        JButton cadastrarSegmentoButton = new JButton("Cadastrar");
+        cadastrarSegmentoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	abrirCadastroSegmento();
+            }
+        });
+
+        JButton informacaoSegmentoButton = new JButton("Informações");
+        informacaoSegmentoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+              listarSegmentos();
+            }
+        });
+               
+        JButton editarSegmentoButton = new JButton("Editar");
+        editarSegmentoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	abrirEditarSegmento();
+            }
+        });
+                      
+        JButton excluirSegmentoButton = new JButton("Excluir");
+        excluirSegmentoButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                excluirSegmento();
+            }
+        });
+                
+        //////////////////////////////////////////////////
+        JLabel rotasLabel = new JLabel("Rotas");
+        
+        JButton cadastrarRotaButton = new JButton("Cadastrar");
+        cadastrarRotaButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            //	abrirCadastroRota();
+            }
+        });
+
+        JButton informacaoRotaButton = new JButton("Informações");
+        informacaoRotaButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+              //  listarRotas();
+            }
+        });
+               
+        JButton editarRotasButton = new JButton("Editar");
+        editarRotasButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+            	//abrirEditarRota();
+            }
+        });
+                      
+        JButton excluirRotasButton = new JButton("Excluir");
+        excluirRotasButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+              //  excluirRota();
+            }
+        });
+        
+        //////////////////////////////////////////////////
+        
         JButton logoutButton = new JButton("Logout");
         logoutButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 enviarLogout(token); 
             }
         });
-        panel.add(logoutButton);
+                       
 
-        add(panel);
+
+        JPanel tudo = new JPanel(new FlowLayout());
+
+        JPanel panel0 = new JPanel(new FlowLayout());
+        
+        panel0.add(cadastrarUsuarioButton);
+        panel0.add(editarUsuarioButton);
+        panel0.add(informacaoUsuarioButton);         
+        panel0.add(excluirUsuarioButton);
+        panel0.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), usuariosLabel.getText()));
+        
+        JPanel panel1 = new JPanel(new FlowLayout());
+        panel1.add(cadastrarPontoButton);
+        panel1.add(editarPontoButton);
+        panel1.add(informacaoPontoButton);
+        panel1.add(excluirPontoButton);
+        panel1.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),pontosLabel.getText()));
+        
+        JPanel panel2 = new JPanel(new FlowLayout());
+        panel2.add(cadastrarSegmentoButton);
+        panel2.add(editarSegmentoButton);
+        panel2.add(informacaoSegmentoButton);
+        panel2.add(excluirSegmentoButton);
+        panel2.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),segmentosLabel.getText()));
+        /*
+        JPanel panel3 = new JPanel(new FlowLayout());
+        panel3.add(cadastrarRotaButton);
+        panel3.add(editarRotasButton);
+        panel3.add(informacaoRotaButton);
+        panel3.add(excluirRotasButton);
+        panel3.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(),rotasLabel.getText()));*/
+        JPanel panel4 = new JPanel(new FlowLayout());
+        panel4.add(logoutButton);
+        
+        tudo.add(panel0);
+        tudo.add(panel1);
+        tudo.add(panel2);
+       // tudo.add(panel3);
+        tudo.add(panel4);
+        add(tudo);
         setLocationRelativeTo(null);
     }
     private void showConnectionLostAlert() {
@@ -97,6 +230,19 @@ public class TelaPrincipal extends JFrame {
     	listarUsuario.setVisible(true);
 
     }
+    private void listarPontos() {
+    	InformacaoPonto listarPontos = new InformacaoPonto(socket,this, this.token);
+    	listarPontos.atualizarToken(this.token);
+    	listarPontos.setVisible(true);
+
+    }
+    
+    private void excluirPonto() {
+    	ExcluirPonto excluirPontos = new ExcluirPonto(socket,this, this.token);
+    	excluirPontos.atualizarToken(this.token);
+    	excluirPontos.setVisible(true);
+
+    }
 
     private void abrirEditarUsuario() {
         EditarUsuario editarUsuario = new EditarUsuario(socket, this, this.token);
@@ -110,6 +256,47 @@ public class TelaPrincipal extends JFrame {
         excluirUsuario.setVisible(true);
     }
 
+    private void abrirCadastroPonto() {
+        CadastroPonto cadastroPonto = new CadastroPonto(socket, this,token);
+        cadastroPonto.atualizarToken(this.token);
+        cadastroPonto.setVisible(true);
+        this.dispose();
+    }
+    
+    private void abrirEditarPonto() {
+        EditarPonto editarPonto = new EditarPonto(socket, this,token);
+        editarPonto.atualizarToken(this.token);
+        editarPonto.setVisible(true);
+        this.dispose();
+    }
+    
+    private void abrirEditarSegmento() {
+        EditarSegmento editarSegmento = new EditarSegmento(socket, this, this.token);
+        editarSegmento.atualizarToken(this.token);
+        editarSegmento.setVisible(true);
+        this.dispose();
+    }
+    
+    private void abrirCadastroSegmento() {
+        CadastroSegmento cadastroSegmento = new CadastroSegmento(socket, this,token);
+        cadastroSegmento.atualizarToken(this.token);
+        cadastroSegmento.setVisible(true);
+        this.dispose();
+    }
+    
+    private void listarSegmentos() {
+    	InformacaoSegmento listarSegmento = new InformacaoSegmento(socket,this, this.token);
+    	listarSegmento.atualizarToken(this.token);
+    	listarSegmento.setVisible(true);
+
+    }
+    private void excluirSegmento() {
+    	ExcluirSegmento excluirSegmento = new ExcluirSegmento(socket,this, this.token);
+    	excluirSegmento.atualizarToken(this.token);
+    	excluirSegmento.setVisible(true);
+
+    }
+    
     private void voltarTelaLogin() {
     	try {
             if (socket != null && !socket.isClosed()) {
@@ -125,7 +312,7 @@ public class TelaPrincipal extends JFrame {
     
     private void enviarLogout(String token) {
         if (token == null || token.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Token inválido. O logout falhou.");
+            JOptionPane.showMessageDialog(this, "'token' vazio ou nulo. O logout falhou.");
             
             return;
         }
@@ -149,8 +336,19 @@ public class TelaPrincipal extends JFrame {
 					String resposta = in.readLine();
 		            System.out.println("TelaPrincipal<-Recebida do servidor: "+ resposta);
 		            JSONObject respostaJSON = new JSONObject(resposta);
-		            boolean error = respostaJSON.optBoolean("error");
+		            String action = respostaJSON.optString("action");
+		            Boolean error = respostaJSON.optBoolean("error");
 		            String message = respostaJSON.optString("message");
+		            if (error == null || error.toString().isEmpty()) {
+		                JOptionPane.showMessageDialog(this, "'error' não enviado pelo Servidor ou nulo");
+		                return; 
+		            }
+		            if (action == null || action.isEmpty()) {
+		                JOptionPane.showMessageDialog(this, "'action' não enviado pelo Servidor ou nulo");
+		            }
+		            if (message == null || message.isEmpty()) {
+		                JOptionPane.showMessageDialog(this, "'message' não enviado pelo Servidor ou nulo");
+		            }
 		            if (!error) {
 		                JOptionPane.showMessageDialog(this, message);
 		                voltarTelaLogin();
